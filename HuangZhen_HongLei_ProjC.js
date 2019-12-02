@@ -1,13 +1,33 @@
 // Vertex shader program----------------------------------
 var VSHADER_SOURCE =
   'uniform mat4 u_modelMatrix;\n' +
+  'uniform mat4 u_NormalMatrix;\n' +
+  'uniform vec3 u_LightColor;\n' +
+  'uniform vec3 u_LightPosition; \n' +
+  'uniform vec3 u_AmbientLight;\n' +
+
   'attribute vec4 a_Position;\n' +
+  'attribute vec4 a_Normal;\n' +
   'attribute vec4 a_Color;\n' +
   'varying vec4 v_Color;\n' +
-  'void main() {\n' +
+
+   'void main() {\n' +
+
   '  gl_Position = u_modelMatrix * a_Position;\n' +
-  '  gl_PointSize = 10.0;\n' +
-  '  v_Color = a_Color;\n' +
+     // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
+  '  vec3 normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
+     // Calculate world coordinate of vertex
+  '  vec4 vertexPosition = u_modelMatrix * a_Position;\n' +
+     // Calculate the light direction and make it 1.0 in length
+  '  vec3 lightDirection = normalize(u_LightPosition - vec3(vertexPosition));\n' +
+     // The dot product of the light direction and the normal
+  '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
+     // Calculate the color due to diffuse reflection
+  '  vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
+     // Calculate the color due to ambient reflection
+  '  vec3 ambient = u_AmbientLight * a_Color.rgb;\n' +
+     // Add the surface colors due to diffuse reflection and ambient reflection
+  '  v_Color = vec4(diffuse + ambient, a_Color.a);\n' + 
   '}\n';
 
 // Fragment shader program----------------------------------
@@ -33,6 +53,11 @@ var floatsPerVertex = 7;	// # of Float32Array elements used for each vertex
 var g_theta =-27.5;
 var userHeight=0;
 var currentHeight=0;
+
+var u_NormalMatrix ;
+  var u_LightColor ;
+  var u_LightPosition;
+  var u_AmbientLight ;
 													// (x,y,z,w)position + (r,g,b)color
 													// Later, see if you can add:
 													// (x,y,z) surface normal + (tx,ty) texture addr.
@@ -40,6 +65,7 @@ var g_angle01 = 0.0;        // animation angle 01 (degrees)
 var g_angle02 = 0.0;        // animation angle 02 (degrees)
 var g_last = Date.now();
 var modelMatrix = new Matrix4();
+var normalMatrix = new Matrix4(); 
 var height_steps = 0.1;
 
 	//------------For mouse click-and-drag: -------------------------------
@@ -109,10 +135,22 @@ function main() {
 
   // Get handle to graphics system's storage location of u_modelMatrix
   u_modelMatrix = gl.getUniformLocation(gl.program, 'u_modelMatrix');
-  if (!u_modelMatrix) {
-    console.log('Failed to get the storage location of u_modelMatrix');
+  u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
+  u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
+  u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
+  u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
+  if (!u_modelMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition　|| !u_AmbientLight) { 
+    console.log('Failed to get the storage location');
     return;
   }
+
+  // Set the light color (white)
+  gl.uniform3f(u_LightColor, 0.8, 0.8, 0.8);
+  // Set the light direction (in the world coordinate)
+  gl.uniform3f(u_LightPosition, 5.0, 8.0, 7.0);
+  // Set the ambient light
+  gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+
 //-----------------
 
   tick();							// start (and continue) animation: draw current image
@@ -2261,7 +2299,14 @@ function drawAll(){
 
 
 function drawDiamond(){
+
+
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
+
+  normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
+  // Pass the transformation matrix for normals to u_NormalMatrix
+  gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
     gl.drawArrays(gl.TRIANGLES,				// use this drawing primitive, and
   							diamondStart/floatsPerVertex, // start at this vertex number, and
@@ -2272,6 +2317,11 @@ function drawDiamond(){
 function drawCylinder(){
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
   // Draw just the the cylinder's vertices:
+
+  normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
+  // Pass the transformation matrix for normals to u_NormalMatrix
+  gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
     gl.drawArrays(gl.TRIANGLE_STRIP,				// use this drawing primitive, and
   							cylStart/floatsPerVertex, // start at this vertex number, and
   							cylVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -2279,6 +2329,11 @@ function drawCylinder(){
 
 function drawTentacle(){
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
+
+  normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
+  // Pass the transformation matrix for normals to u_NormalMatrix
+  gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
     gl.drawArrays(gl.TRIANGLES,				// use this drawing primitive, and
   							polyStart/floatsPerVertex, // start at this vertex number, and
@@ -2287,6 +2342,11 @@ function drawTentacle(){
 
 function drawCylinder2(){
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
+
+  normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
+  // Pass the transformation matrix for normals to u_NormalMatrix
+  gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
     gl.drawArrays(gl.TRIANGLE_STRIP,				// use this drawing primitive, and
   							cyl2Start/floatsPerVertex, // start at this vertex number, and
@@ -2296,6 +2356,11 @@ function drawCylinder2(){
 function drawGrid(){
 
 	 gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
+
+   normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
+  // Pass the transformation matrix for normals to u_NormalMatrix
+  gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
      // Draw just the ground-plane's vertices
      gl.drawArrays(gl.LINES, 								// use this drawing primitive, and
   						  gndStart/floatsPerVertex,	// start at this vertex number, and
@@ -2306,6 +2371,11 @@ function drawGrid(){
 function drawTorus(){
 
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
+
+  normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
+  // Pass the transformation matrix for normals to u_NormalMatrix
+  gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   		// Draw just the torus's vertices
     gl.drawArrays(gl.TRIANGLE_STRIP, 				// use this drawing primitive, and
   						  torStart/floatsPerVertex,	// start at this vertex number, and
@@ -2315,6 +2385,11 @@ function drawTorus(){
 function drawSphere(){
 
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
+
+  normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
+  // Pass the transformation matrix for normals to u_NormalMatrix
+  gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   		// Draw just the sphere's vertices
    gl.drawArrays(gl.TRIANGLE_STRIP,				// use this drawing primitive, and
   							sphStart/floatsPerVertex,	// start at this vertex number, and
@@ -2324,6 +2399,11 @@ function drawSphere(){
 function drawAxes(){
 
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
+
+  normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
+  // Pass the transformation matrix for normals to u_NormalMatrix
+  gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   		// Draw just the sphere's vertices
    gl.drawArrays(gl.LINES,				// use this drawing primitive, and
   							axeStart/floatsPerVertex,	// start at this vertex number, and
@@ -2332,6 +2412,11 @@ function drawAxes(){
 
 function drawRectangle(){
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
+
+  normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
+  // Pass the transformation matrix for normals to u_NormalMatrix
+  gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   		// Draw just the sphere's vertices
    gl.drawArrays(gl.TRIANGLES,				// use this drawing primitive, and
   							recStart/floatsPerVertex,	// start at this vertex number, and
