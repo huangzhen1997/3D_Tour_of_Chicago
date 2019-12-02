@@ -53,10 +53,10 @@ var qTot = new Quaternion(0,0,0,1);	// 'current' orientation (made from qNew)
 var quatMatrix = new Matrix4();				// rotation matrix, made from latest qTot
 
 
-var g_EyeX = -5.20, g_EyeY = 1.25, g_EyeZ = 1.2;
-var g_lookX =1;
-var g_lookY =1;
-var g_lookZ = 1;
+var g_EyeX = -13.20, g_EyeY = 6.25, g_EyeZ = 6;
+var g_lookX =0;
+var g_lookY =0;
+var g_lookZ = 5.65;
 var foward_dis = 0;
 
 function main() {
@@ -1072,8 +1072,8 @@ function makeGroundGrid() {
 	var xcount = 200;			// # of lines to draw in x,y to make the grid.
 	var ycount = 200;
 	var xymax	= 80.0;			// grid size; extends to cover +/-xymax in x and y.
-    var xColr = Math.random()*0.5;  
-    var yColr = Math.random() * 0.5; 
+    var xColr = 1;  
+    var yColr = 1; 
 
 	// Create an (global) array to hold this ground-plane's vertices:
 	gndVerts = new Float32Array(floatsPerVertex*2*(xcount+ycount));
@@ -1088,17 +1088,17 @@ function makeGroundGrid() {
 			gndVerts[j  ] = -xymax + (v  )*xgap;	// x
 			gndVerts[j+1] = -xymax;								// y
 			gndVerts[j+2] = 0.0;									// z
-			//gndVerts[j+3] = 1.0;									// w.
+			gndVerts[j+3] = 1.0;									// w.
 		}
 		else {				// put odd-numbered vertices at (xnow, +xymax, 0).
 			gndVerts[j  ] = -xymax + (v-1)*xgap;	// x
 			gndVerts[j+1] = xymax;								// y
 			gndVerts[j+2] = 0.0;									// z
-			//gndVerts[j+3] = 1.0;									// w.
+			gndVerts[j+3] = 1.0;									// w.
 		}
-		gndVerts[j+3] = xColr;			// red
-		gndVerts[j+4] = yColr;			// grn
-		gndVerts[j+5] = 1;			// blu
+		gndVerts[j+4] = xColr;			// red
+		gndVerts[j+5] = yColr;			// grn
+		gndVerts[j+6] = 1;			// blu
 	}
 	// Second, step thru y values as wqe make horizontal lines of constant-y:
 	// (don't re-initialize j--we're adding more vertices to the array)
@@ -1107,17 +1107,17 @@ function makeGroundGrid() {
 			gndVerts[j  ] = -xymax;								// x
 			gndVerts[j+1] = -xymax + (v  )*ygap;	// y
 			gndVerts[j+2] = 0.0;									// z
-			//gndVerts[j+3] = 1.0;									// w.
+			gndVerts[j+3] = 1.0;									// w.
 		}
 		else {					// put odd-numbered vertices at (+xymax, ynow, 0).
 			gndVerts[j  ] = xymax;								// x
 			gndVerts[j+1] = -xymax + (v-1)*ygap;	// y
 			gndVerts[j+2] = 0.0;									// z
-			//gndVerts[j+3] = 1.0;									// w.
+			gndVerts[j+3] = 1.0;									// w.
 		}
-		gndVerts[j+3] = xColr;			// red
-		gndVerts[j+4] = yColr;			// grn
-		gndVerts[j+5] = 1;			// blu
+		gndVerts[j+4] = xColr;			// red
+		gndVerts[j+5] = yColr;			// grn
+		gndVerts[j+6] = 1;			// blu
 	}
 }
 
