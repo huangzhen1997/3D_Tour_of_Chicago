@@ -6,6 +6,10 @@ var VSHADER_SOURCE =
   'uniform vec3 u_LightPosition; \n' +
   'uniform vec3 u_AmbientLight;\n' +
 
+  'uniform vec3 u_HeadlightPosition;\n' +
+  'uniform vec3 u_HeadlightDiffuse;\n' +
+  'uniform vec3 u_HeadlightSpecular;\n' +
+
   'attribute vec4 a_Position;\n' +
   'attribute vec4 a_Normal;\n' +
   'attribute vec4 a_Color;\n' +
@@ -20,6 +24,8 @@ var VSHADER_SOURCE =
   'uniform vec3 u_Kd; \n' + //diffuse
   'uniform int u_KShiny;\n' + //shinyness
 
+  'uniform int headlightOn;\n' +
+
    'void main() {\n' +
 
   '  gl_Position = u_modelMatrix * a_Position;\n' +
@@ -29,25 +35,52 @@ var VSHADER_SOURCE =
   '  vec4 vertexPosition = u_modelMatrix * a_Position;\n' +
      // Calculate the light direction and make it 1.0 in length
   '  vec3 lightDirection = normalize(u_LightPosition - vec3(vertexPosition));\n' +
+  '  vec3 hLightDirection = normalize(u_HeadlightPosition - vec3(vertexPosition));\n' +
+
      // The dot product of the light direction and the normal
   '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
+  '  float nDotHl = max(dot(hLightDirection, normal),0.0);\n' +
      // Calculate the color due to diffuse reflection
-  '  vec3 diffuse = u_LightColor * u_Kd * nDotL;\n' +
+ 
      // Calculate the color due to ambient reflection
-  '  vec3 emissive = u_Ke;\n' +
-  '  vec3 ambient = u_AmbientLight * u_Ka;\n' +
+
      // Add the surface colors due to diffuse reflection and ambient reflection
   '  vec3 eyeDirection = normalize(u_eyePosWorld.xyz - vec3(vertexPosition)); \n' +
   '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
+
+
+
+
   '  float nDotH = max(dot(H, normal), 0.0); \n' +
-  	'float e02 = nDotH*nDotH; \n' +
+  'float e02 = nDotH*nDotH; \n' +
 	'float e04 = e02*e02; \n' +
 	'float e08 = e04*e04; \n' +
 	'float e16 = e08*e08; \n' +
 	'float e32 = e16*e16; \n' +
 	'float e64 = e32*e32; \n' +
+
+
+  '  vec3 emissive = u_Ke;\n' +
+  '  vec3 ambient = u_AmbientLight * u_Ka;\n' +  
   '  vec3 specular = u_Specular * u_Ks * e64;\n'  +
-  '  v_Color = vec4(diffuse + ambient + specular + emissive, 1.0);\n' + 
+  '  vec3 diffuse = u_LightColor * u_Kd * nDotL;\n' +
+
+  '  vec3 hdiff = u_HeadlightDiffuse * u_Kd * nDotHl;\n' +
+  '  vec3 hspec = u_HeadlightSpecular * u_Ks * e32;\n' +
+
+
+  'vec4 fragHead = vec4(hdiff + hspec,1.0);\n' +
+
+  'vec4 fragworld = vec4(diffuse + ambient + specular + emissive, 1.0);\n' + 
+
+  ' if (headlightOn==1){\n'+
+  '  v_Color = fragHead + fragworld;\n' +
+  '}\n'+
+  ' else{\n'+
+  ' v_Color = fragworld;}\n'+
+
+  
+
   '}\n';
 
 // Fragment shader program----------------------------------
@@ -67,6 +100,10 @@ var gl;				// main() sets this to the rendering context for WebGL. This object
 // nearly all our program's functions need it to make WebGL calls.  All those
 // functions would need 'gl' as an argument if we didn't make it a global var.
 var u_modelMatrix;     // **GPU location** of the 'u_modelMatrix' uniform
+var u_HeadlightPosition;
+var u_HeadlightDiffuse;
+var u_HeadlightSpecular;
+
 var ANGLE_STEP = 45.0;		// Rotation angle rate (degrees/second)
 var ANGLE_STEP_2 = 20.0;   // A different Rotation angle rate (degrees/second)
 var floatsPerVertex = 7;	// # of Float32Array elements used for each vertex
@@ -88,6 +125,10 @@ var modelMatrix = new Matrix4();
 var normalMatrix = new Matrix4(); 
 var height_steps = 0.1;
 
+var headlightOn = true;
+
+var hlOn;
+
 	//------------For mouse click-and-drag: -------------------------------
 var g_isDrag=false;		// mouse-drag: true when user holds down mouse button
 var g_xMclik=0.0;			// last mouse button-down position (in CVV coords)
@@ -97,6 +138,7 @@ var g_yMdragTot=0.0;
 var qNew = new Quaternion(0,0,0,1); // most-recent mouse drag's rotation
 var qTot = new Quaternion(0,0,0,1);	// 'current' orientation (made from qNew)
 var quatMatrix = new Matrix4();				// rotation matrix, made from latest qTot
+
 
 
 var g_EyeX = -13.20, g_EyeY = 6.25, g_EyeZ = 6;
@@ -154,6 +196,13 @@ function main() {
 	 gl.enable(gl.DEPTH_TEST);
 
   // Get handle to graphics system's storage location of u_modelMatrix
+
+  u_HeadlightDiffuse = gl.getUniformLocation(gl.program, 'u_HeadlightDiffuse');
+  u_HeadlightPosition = gl.getUniformLocation(gl.program, 'u_HeadlightPosition');
+  u_HeadlightSpecular = gl.getUniformLocation(gl.program, 'u_HeadlightSpecular');
+
+  hlOn = gl.getUniformLocation(gl.program, 'headlightOn');
+
   u_modelMatrix = gl.getUniformLocation(gl.program, 'u_modelMatrix');
   u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
   u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
@@ -180,6 +229,9 @@ function main() {
   // Set the ambient light
   gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
 
+  gl.uniform3f(u_HeadlightDiffuse, 1.0, 1.0, 1.0);
+    gl.uniform3f(u_HeadlightSpecular, 1.0, 1.0, 1.0);
+
 //-----------------
 
   tick();							// start (and continue) animation: draw current image
@@ -195,6 +247,7 @@ function tick(){
 	nuCanvas.height = innerHeight*3/4;
 	gl = getWebGLContext(nuCanvas);
 	gl.uniform3f(u_eyePosWorld, g_EyeX, g_EyeY, g_EyeZ);
+  gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
 
     animate();  // Update the rotation angle
     drawAll();   // Draw shapes
@@ -1193,6 +1246,16 @@ function drawAll(){
 //==============================================================================
   // Clear <canvas>  colors AND the depth buffer
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+
+  if (headlightOn) {
+    gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
+    gl.uniform1i(hlOn, 1);
+  }
+
+  else{
+    gl.uniform1i(hlOn,0);
+  }
 
 
   gl.viewport(0,											 				// Viewport lower-left corner
@@ -2853,6 +2916,13 @@ function keydown(ev) {
 	
     var abs_l = Math.sqrt(dx*dx + dy*dy + dz*dz);
     var abs_xy = Math.sqrt(dx*dx+dy*dy);
+
+    if (ev.keyCode==72){
+      if (headlightOn)
+          headlightOn = false;
+      else
+          headlightOn = true;
+    }
 
 
 
