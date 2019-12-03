@@ -25,8 +25,9 @@ var VSHADER_SOURCE =
   'uniform int u_KShiny;\n' + //shinyness
 
   'uniform int headlightOn;\n' +
+  'uniform int worldlightOn;\n' +
 
-   'void main() {\n' +
+  ' void main() {\n' +
 
   '  gl_Position = u_modelMatrix * a_Position;\n' +
      // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
@@ -73,13 +74,13 @@ var VSHADER_SOURCE =
 
   'vec4 fragworld = vec4(diffuse + ambient + specular + emissive, 1.0);\n' + 
 
-  ' if (headlightOn==1){\n'+
+  ' if (headlightOn==1 && worldlightOn==1){\n'+
   '  v_Color = fragHead + fragworld;\n' +
   '}\n'+
-  ' else{\n'+
-  ' v_Color = fragworld;}\n'+
-
-  
+ 
+  ' else if (headlightOn ==1 && worldlightOn==0){\n'+
+  ' v_Color = fragHead;}\n'+
+  ' else{ v_Color = fragworld;}\n'+
 
   '}\n';
 
@@ -115,6 +116,7 @@ var u_NormalMatrix ;
   var u_LightColor ;
   var u_LightPosition;
   var u_AmbientLight ;
+  var u_Specular;
 													// (x,y,z,w)position + (r,g,b)color
 													// Later, see if you can add:
 													// (x,y,z) surface normal + (tx,ty) texture addr.
@@ -126,8 +128,10 @@ var normalMatrix = new Matrix4();
 var height_steps = 0.1;
 
 var headlightOn = true;
+var worldlightOn = true;
 
 var hlOn;
+var wlOn;
 
 	//------------For mouse click-and-drag: -------------------------------
 var g_isDrag=false;		// mouse-drag: true when user holds down mouse button
@@ -202,6 +206,7 @@ function main() {
   u_HeadlightSpecular = gl.getUniformLocation(gl.program, 'u_HeadlightSpecular');
 
   hlOn = gl.getUniformLocation(gl.program, 'headlightOn');
+  wlOn = gl.getUniformLocation(gl.program, 'worldlightOn');
 
   u_modelMatrix = gl.getUniformLocation(gl.program, 'u_modelMatrix');
   u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
@@ -209,14 +214,19 @@ function main() {
   u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
   u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
   u_eyePosWorld = gl.getUniformLocation(gl.program, 'u_eyePosWorld');
-    u_Ke = gl.getUniformLocation(gl.program, 'u_Ke');
-    u_Ks = gl.getUniformLocation(gl.program, 'u_Ks');
-    u_Ka = gl.getUniformLocation(gl.program, 'u_Ka');
-    u_Kd = gl.getUniformLocation(gl.program, 'u_Kd');
-    u_KShiny = gl.getUniformLocation(gl.program, 'u_KShiny');
-    gl.uniform3f(u_Ks, 1.0, 1.0, 1.0);
-    gl.uniform3f(u_Ka, 1.0, 0.3, 0.3);
-    gl.uniform3f(u_Kd, 0.3, 0.3, 0.3);
+  u_Specular = gl.getUniformLocation(gl.program,'u_Specular');
+
+
+  u_Ke = gl.getUniformLocation(gl.program, 'u_Ke');
+  u_Ks = gl.getUniformLocation(gl.program, 'u_Ks');
+  u_Ka = gl.getUniformLocation(gl.program, 'u_Ka');
+  u_Kd = gl.getUniformLocation(gl.program, 'u_Kd');
+  u_KShiny = gl.getUniformLocation(gl.program, 'u_KShiny');
+
+
+  gl.uniform3f(u_Ks, 1.0, 1.0, 1.0);
+  gl.uniform3f(u_Ka, 1.0, 0.3, 0.3);
+  gl.uniform3f(u_Kd, 0.3, 0.3, 0.3);
   if (!u_modelMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition　|| !u_AmbientLight) { 
     console.log('Failed to get the storage location');
     return;
@@ -228,6 +238,8 @@ function main() {
   gl.uniform3f(u_LightPosition, 5.0, 8.0, 7.0);
   // Set the ambient light
   gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+
+  gl.uniform3f(u_Specular,1.0, 1.0, 1.0);
 
   gl.uniform3f(u_HeadlightDiffuse, 1.0, 1.0, 1.0);
     gl.uniform3f(u_HeadlightSpecular, 1.0, 1.0, 1.0);
@@ -1257,6 +1269,33 @@ function drawAll(){
     gl.uniform1i(hlOn,0);
   }
 
+  if (worldlightOn){
+    gl.uniform1i(wlOn, 1);
+    gl.uniform3f(u_LightColor, 0.8, 0.8, 0.8);
+  // Set the light direction (in the world coordinate)
+  gl.uniform3f(u_LightPosition, 5.0, 8.0, 7.0);
+  // Set the ambient light
+  gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+
+  gl.uniform3f(u_Specular,1.0, 1.0, 1.0);
+
+
+  }
+
+  else{
+    gl.uniform1i(wlOn,0);
+
+    gl.uniform3f(u_LightColor, 0, 0, 0);
+  // Set the light direction (in the world coordinate)
+  gl.uniform3f(u_LightPosition, 0, 0, 0);
+  // Set the ambient light
+  gl.uniform3f(u_AmbientLight, 0, 0, 0);
+
+  gl.uniform3f(u_Specular,0, 0, 0);
+
+
+  }
+
 
   gl.viewport(0,											 				// Viewport lower-left corner
 							0, 			// location(in pixels)
@@ -1301,7 +1340,7 @@ function drawAll(){
 //===================Draw FIRST OBJECT(Tower):
 
   //-------Draw lower Spinning Cylinder:
-    modelMatrix.scale(1/7,1/7,1/7);
+  modelMatrix.scale(1/7,1/7,1/7);
 	modelMatrix.translate(-0.6,0.6, 0.0);
 	modelMatrix.scale(1.5, 1.5, 1.5);
 	//modelMatrix.rotate(90, 0, 1, 0);
@@ -2922,6 +2961,14 @@ function keydown(ev) {
           headlightOn = false;
       else
           headlightOn = true;
+    }
+
+    if (ev.keyCode == 32){
+      if(worldlightOn){
+        worldlightOn = false;
+      }
+      else 
+        worldlightOn = true;
     }
 
 
