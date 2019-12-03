@@ -10,6 +10,15 @@ var VSHADER_SOURCE =
   'attribute vec4 a_Normal;\n' +
   'attribute vec4 a_Color;\n' +
   'varying vec4 v_Color;\n' +
+  'uniform vec3 u_Specular;\n' +
+  'uniform vec3 u_eyePosWorld; \n' +
+  
+    //Material uniforms
+  'uniform vec3 u_Ks;\n' +  //specular
+  'uniform vec3 u_Ke;\n' +  //emissive
+  'uniform vec3 u_Ka;\n' +  //ambience
+  'uniform vec3 u_Kd; \n' + //diffuse
+  'uniform int u_KShiny;\n' + //shinyness
 
    'void main() {\n' +
 
@@ -23,11 +32,22 @@ var VSHADER_SOURCE =
      // The dot product of the light direction and the normal
   '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
      // Calculate the color due to diffuse reflection
-  '  vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;\n' +
+  '  vec3 diffuse = u_LightColor * u_Kd * nDotL;\n' +
      // Calculate the color due to ambient reflection
-  '  vec3 ambient = u_AmbientLight * a_Color.rgb;\n' +
+  '  vec3 emissive = u_Ke;\n' +
+  '  vec3 ambient = u_AmbientLight * u_Ka;\n' +
      // Add the surface colors due to diffuse reflection and ambient reflection
-  '  v_Color = vec4(diffuse + ambient, a_Color.a);\n' + 
+  '  vec3 eyeDirection = normalize(u_eyePosWorld.xyz - vec3(vertexPosition)); \n' +
+  '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
+  '  float nDotH = max(dot(H, normal), 0.0); \n' +
+  	'float e02 = nDotH*nDotH; \n' +
+	'float e04 = e02*e02; \n' +
+	'float e08 = e04*e04; \n' +
+	'float e16 = e08*e08; \n' +
+	'float e32 = e16*e16; \n' +
+	'float e64 = e32*e32; \n' +
+  '  vec3 specular = u_Specular * u_Ks * e64;\n'  +
+  '  v_Color = vec4(diffuse + ambient + specular + emissive, 1.0);\n' + 
   '}\n';
 
 // Fragment shader program----------------------------------
@@ -139,6 +159,15 @@ function main() {
   u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
   u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
   u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
+  u_eyePosWorld = gl.getUniformLocation(gl.program, 'u_eyePosWorld');
+    u_Ke = gl.getUniformLocation(gl.program, 'u_Ke');
+    u_Ks = gl.getUniformLocation(gl.program, 'u_Ks');
+    u_Ka = gl.getUniformLocation(gl.program, 'u_Ka');
+    u_Kd = gl.getUniformLocation(gl.program, 'u_Kd');
+    u_KShiny = gl.getUniformLocation(gl.program, 'u_KShiny');
+    gl.uniform3f(u_Ks, 1.0, 1.0, 1.0);
+    gl.uniform3f(u_Ka, 1.0, 0.3, 0.3);
+    gl.uniform3f(u_Kd, 0.3, 0.3, 0.3);
   if (!u_modelMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition　|| !u_AmbientLight) { 
     console.log('Failed to get the storage location');
     return;
@@ -165,6 +194,7 @@ function tick(){
 	nuCanvas.width = innerWidth;
 	nuCanvas.height = innerHeight*3/4;
 	gl = getWebGLContext(nuCanvas);
+	gl.uniform3f(u_eyePosWorld, g_EyeX, g_EyeY, g_EyeZ);
 
     animate();  // Update the rotation angle
     drawAll();   // Draw shapes
@@ -296,14 +326,14 @@ function initVertexBuffer(gl) {
   									// Enable assignment of vertex buffer object's position data
 
   // Get graphics system's handle for our Vertex Shader's color-input variable;
-  var a_Color = gl.getAttribLocation(gl.program, 'a_Color');
-  if(a_Color < 0) {
-    console.log('Failed to get the storage location of a_Color');
+  var a_Normal = gl.getAttribLocation(gl.program, 'a_Normal');
+  if(a_Normal < 0) {
+    console.log('Failed to get the storage location of a_Normal');
     return -1;
   }
   // Use handle to specify how to retrieve **COLOR** data from our VBO:
   gl.vertexAttribPointer(
-  	a_Color, 				// choose Vertex Shader attribute to fill with data
+  	a_Normal, 				// choose Vertex Shader attribute to fill with data
   	3, 							// how many values? 1,2,3 or 4. (we're using R,G,B)
   	gl.FLOAT, 			// data type for each value: usually gl.FLOAT
   	false, 					// did we supply fixed-point data AND it needs normalizing?
@@ -312,7 +342,7 @@ function initVertexBuffer(gl) {
   	FSIZE * 4);			// Offset -- how many bytes from START of buffer to the
   									// value we will actually use?  Need to skip over x,y,z,w
 
-  gl.enableVertexAttribArray(a_Color);
+  gl.enableVertexAttribArray(a_Normal);
   									// Enable assignment of vertex buffer object's position data
 
 	//--------------------------------DONE!
@@ -856,9 +886,9 @@ function makeSphere2() {
   var sliceVerts = 100;	// # of vertices around the top edge of the slice
 										// (same number of vertices on bottom of slice, too)
 										// (HINT: odd# or prime#s help avoid accidental symmetry)
-  var topColr = new Float32Array([0.8, 0.8, 0.0]);	// South Pole: dark-gray
+  var topColr = new Float32Array([0.8, 0.8, 0.8]);	// South Pole: dark-gray
   var botColr = new Float32Array([0.8, 0.8, 0.8]);	// North Pole: light-gray.
-  var errColr = new Float32Array([0.8, 0.8, 0.0]);	// Bright-red trouble colr
+  var errColr = new Float32Array([0.8, 0.8, 0.8]);	// Bright-red trouble colr
   var sliceAngle = Math.PI/slices;	// One slice spans this fraction of the
   // 180 degree (Pi radian) lattitude angle between south pole and north pole.
 
@@ -952,9 +982,9 @@ function makeSphere2() {
 				sphVerts[j+6]=topColr[2];
 			}
 			else {	// for all non-top, not-bottom slices, set vertex colors randomly
-					sphVerts[j+4]= Math.random()/2;  	// 0.0 <= red <= 0.5
-					sphVerts[j+5]= Math.random()/2;		// 0.0 <= grn <= 0.5
-					sphVerts[j+6]= Math.random()/2;		// 0.0 <= blu <= 0.5
+					sphVerts[j+4]= 0.8;  	// 0.0 <= red <= 0.5
+					sphVerts[j+5]= 0.8;		// 0.0 <= grn <= 0.5
+					sphVerts[j+6]= 0.8;		// 0.0 <= blu <= 0.5
 			}
 		}
 	}
@@ -1964,6 +1994,9 @@ function drawAll(){
   modelMatrix.scale(0.09, 0.45, 0.09);
   // modelMatrix.scale(0.09, 0.45, 0.09);
   drawTentacle();
+  
+  
+ 
 
 
 
@@ -2286,10 +2319,21 @@ function drawAll(){
 
 
 
+//===================Draw Eighth OBJECT(Big Sphere):
+	modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
+    modelMatrix.perspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
+                           vpAspect,   // Image Aspect Ratio: camera lens width/height
+                           1.0,   // camera z-near distance (always positive; frustum begins at z = -znear)
+                        100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
 
-	//right screen:
-	//gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
+                     g_atX, g_atY, g_lookZ,      // look-at point
+                      0.0,  0.0,  1.0);     // 'up' vector
+					  
 
+    modelMatrix.translate(-4,0,0);
+	modelMatrix.scale(1, 1, 1);
+	drawSphere();
   
   
 }
@@ -2301,6 +2345,7 @@ function drawAll(){
 function drawDiamond(){
 
 
+	
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
 
   normalMatrix.setInverseOf(modelMatrix);
@@ -2308,6 +2353,10 @@ function drawDiamond(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
+      gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
+    gl.uniform3f(u_Ka, 0.19225, 0.19225, 0.19225);
+    gl.uniform3f(u_Kd, 0.50754, 0.50754, 0.507543);
+    gl.uniform3f(u_Ks, 0.508273, 0.508273, 0.508273);
     gl.drawArrays(gl.TRIANGLES,				// use this drawing primitive, and
   							diamondStart/floatsPerVertex, // start at this vertex number, and
   							DiamondVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -2322,6 +2371,10 @@ function drawCylinder(){
   normalMatrix.transpose();
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
+      gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
+    gl.uniform3f(u_Ka, 0.05, 0.05, 0.05);
+    gl.uniform3f(u_Kd, 0.0, 0.2, 0.6);
+    gl.uniform3f(u_Ks,0.1,     0.2,    0.3);
     gl.drawArrays(gl.TRIANGLE_STRIP,				// use this drawing primitive, and
   							cylStart/floatsPerVertex, // start at this vertex number, and
   							cylVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -2335,6 +2388,10 @@ function drawTentacle(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
+  gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
+    gl.uniform3f(u_Ka, 0.329412, 0.223529, 0.027451);
+    gl.uniform3f(u_Kd, 0.780392, 0.568627, 0.113725);
+    gl.uniform3f(u_Ks, 0.992157, 0.941176, 0.807843);
     gl.drawArrays(gl.TRIANGLES,				// use this drawing primitive, and
   							polyStart/floatsPerVertex, // start at this vertex number, and
   							Polys.length/floatsPerVertex);	// draw this many vertices.
@@ -2348,6 +2405,10 @@ function drawCylinder2(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
+  gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
+    gl.uniform3f(u_Ka, 0.105882, 0.058824, 0.113725);
+    gl.uniform3f(u_Kd, 0.427451, 0.470588, 0.541176);
+    gl.uniform3f(u_Ks, 0.333333, 0.333333, 0.521569);
     gl.drawArrays(gl.TRIANGLE_STRIP,				// use this drawing primitive, and
   							cyl2Start/floatsPerVertex, // start at this vertex number, and
   							cylVerts2.length/floatsPerVertex);	// draw this many vertices.
@@ -2362,6 +2423,11 @@ function drawGrid(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
      // Draw just the ground-plane's vertices
+	 gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
+    gl.uniform3f(u_Ka, 0.0215, 0.1745, 0.0215);
+    gl.uniform3f(u_Kd, 0.07568, 0.61424, 0.07568);
+    gl.uniform3f(u_Ks, 0.633, 0.727811, 0.633);
+    gl.uniform1i(u_KShiny, 76.8);
      gl.drawArrays(gl.LINES, 								// use this drawing primitive, and
   						  gndStart/floatsPerVertex,	// start at this vertex number, and
   						  gndVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -2377,6 +2443,11 @@ function drawTorus(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   		// Draw just the torus's vertices
+		    gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
+    gl.uniform3f(u_Ka, 0.05375, 0.05, 0.06625);
+    gl.uniform3f(u_Kd, 0.18275, 0.17, 0.22525);
+    gl.uniform3f(u_Ks, 0.332741, 0.328634, 0.346435);
+    gl.uniform1i(u_KShiny, 38.4);
     gl.drawArrays(gl.TRIANGLE_STRIP, 				// use this drawing primitive, and
   						  torStart/floatsPerVertex,	// start at this vertex number, and
   						  torVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -2391,6 +2462,11 @@ function drawSphere(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   		// Draw just the sphere's vertices
+		    gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
+    gl.uniform3f(u_Ka, 0.0215, 0.1745, 0.0215);
+    gl.uniform3f(u_Kd, 0.07568, 0.61424, 0.07568);
+    gl.uniform3f(u_Ks, 0.633, 0.727811, 0.633);
+    gl.uniform1i(u_KShiny, 76.8);
    gl.drawArrays(gl.TRIANGLE_STRIP,				// use this drawing primitive, and
   							sphStart/floatsPerVertex,	// start at this vertex number, and
   							sphVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -2418,6 +2494,11 @@ function drawRectangle(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   		// Draw just the sphere's vertices
+		    gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
+    gl.uniform3f(u_Ka, 0.25, 0.25, 0.25);
+    gl.uniform3f(u_Kd, 0.4, 0.4, 0.4);
+    gl.uniform3f(u_Ks, 0.774597, 0.774597, 0.774597);
+    gl.uniform1i(u_KShiny, 76.8);
    gl.drawArrays(gl.TRIANGLES,				// use this drawing primitive, and
   							recStart/floatsPerVertex,	// start at this vertex number, and
   							RecVerts.length/floatsPerVertex);	// draw this many vertices.
