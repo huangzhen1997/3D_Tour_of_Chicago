@@ -235,7 +235,7 @@ function main() {
   // Set the light color (white)
   gl.uniform3f(u_LightColor, 0.8, 0.8, 0.8);
   // Set the light direction (in the world coordinate)
-  gl.uniform3f(u_LightPosition, 5.0, 8.0, 7.0);
+  gl.uniform3f(u_LightPosition, 0, 0, 0);
   // Set the ambient light
   gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
 
@@ -259,7 +259,7 @@ function tick(){
 	nuCanvas.height = innerHeight*3/4;
 	gl = getWebGLContext(nuCanvas);
 	gl.uniform3f(u_eyePosWorld, g_EyeX, g_EyeY, g_EyeZ);
-  gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
+    //gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
 
     animate();  // Update the rotation angle
     drawAll();   // Draw shapes
@@ -929,130 +929,89 @@ function makeCylinder2() {
 
 
 function makeSphere2() {
-//==============================================================================
-// Make a sphere from one TRIANGLE_STRIP drawing primitive,  using the
-// 'stepped spiral' design (Method 2) described in the class lecture notes.
-// Sphere radius==1.0, centered at the origin, with 'south' pole at
-// (x,y,z) = (0,0,-1) and 'north' pole at (0,0,+1).  The tri-strip starts at the
-// south-pole end-cap spiraling upwards (in +z direction) in CCW direction as
-// viewed from the origin looking down (from inside the sphere).
-// Between the south end-cap and the north, it creates ring-like 'slices' that
-// defined by parallel planes of constant z.  Each slice of the tri-strip
-// makes up an equal-lattitude portion of the sphere, and the stepped-spiral
-// slices follow the same design used to the makeCylinder2() function.
-//
-// (NOTE: you'll get better-looking results if you create a 'makeSphere3()
-// function that uses the 'degenerate stepped spiral' design (Method 3 in
-// lecture notes).
-//
+    //==============================================================================
+    // Make a sphere from one OpenGL TRIANGLE_STRIP primitive.   Make ring-like 
+    // equal-lattitude 'slices' of the sphere (bounded by planes of constant z), 
+    // and connect them as a 'stepped spiral' design (see makeCylinder) to build the
+    // sphere from one triangle strip.
+    var slices = 41;		// # of slices of the sphere along the z axis. >=3 req'd
+    // (choose odd # or prime# to avoid accidental symmetry)
+    var sliceVerts = 41;	// # of vertices around the top edge of the slice
+    // (same number of vertices on bottom of slice, too)
+    var topColr = new Float32Array([0.5, 0.5, 0.5]);	// North Pole:
+    var equColr = new Float32Array([.3, .3, .3]);	// Equator:    
+    var botColr = new Float32Array([1, 1, 1]);	// South Pole: 
+    var sliceAngle = Math.PI / slices;	// lattitude angle spanned by one slice.
 
-  var slices =100;		// # of slices of the sphere along the z axis, including
-  									// the south-pole and north pole end caps. ( >=2 req'd)
-  var sliceVerts = 100;	// # of vertices around the top edge of the slice
-										// (same number of vertices on bottom of slice, too)
-										// (HINT: odd# or prime#s help avoid accidental symmetry)
-  var topColr = new Float32Array([0.8, 0.8, 0.8]);	// South Pole: dark-gray
-  var botColr = new Float32Array([0.8, 0.8, 0.8]);	// North Pole: light-gray.
-  var errColr = new Float32Array([0.8, 0.8, 0.8]);	// Bright-red trouble colr
-  var sliceAngle = Math.PI/slices;	// One slice spans this fraction of the
-  // 180 degree (Pi radian) lattitude angle between south pole and north pole.
+    // Create a (global) array to hold this sphere's vertices:
+    sphVerts = new Float32Array(((slices * 2 * sliceVerts) - 2) * floatsPerVertex);
+    // # of vertices * # of elements needed to store them. 
+    // each slice requires 2*sliceVerts vertices except 1st and
+    // last ones, which require only 2*sliceVerts-1.
 
-	// Create a (global) array to hold this sphere's vertices:
-  sphVerts = new Float32Array(  ((slices*2*sliceVerts) -2) * floatsPerVertex);
-										// # of vertices * # of elements needed to store them.
-										// Each end-cap slice requires (2*sliceVerts -1) vertices
-										// and each slice between them requires (2*sliceVerts).
-	// Create the entire sphere as one single tri-strip array. This first for() loop steps through each 'slice', and the for() loop it contains steps through each vertex in the current slice.
-	// INITIALIZE:
-	var cosBot = 0.0;					// cosine and sine of the lattitude angle for
-	var sinBot = 0.0;					// 	the current slice's BOTTOM (southward) edge.
-	// (NOTE: Lattitude = 0 @equator; -90deg @south pole; +90deg at north pole)
-	var cosTop = 0.0;					// "	" " for current slice's TOP (northward) edge
-	var sinTop = 0.0;
-	// for() loop's s var counts slices;
-	// 				  its v var counts vertices;
-	// 					its j var counts Float32Array elements
-	//					(vertices * elements per vertex)
-	var j = 0;							// initialize our array index
-	var isFirstSlice = 1;		// ==1 ONLY while making south-pole slice; 0 otherwise
-	var isLastSlice = 0;		// ==1 ONLY while making north-pole slice; 0 otherwise
-	for(s=0; s<slices; s++) {	// for each slice of the sphere,---------------------
-		// For current slice's top & bottom edges, find lattitude angle sin,cos:
-		if(s==0) {
-			isFirstSlice = 1;		// true ONLY when we're creating the south-pole slice
-			cosBot =  0.0; 			// initialize: first slice's lower edge is south pole.
-			sinBot = -1.0;			// (cos(lat) sets slice diameter; sin(lat) sets z )
-		}
-		else {					// otherwise, set new bottom edge == old top edge
-			isFirstSlice = 0;
-			cosBot = cosTop;
-			sinBot = sinTop;
-		}								// then compute sine,cosine of lattitude of new top edge.
-		cosTop = Math.cos((-Math.PI/2) +(s+1)*sliceAngle);
-		sinTop = Math.sin((-Math.PI/2) +(s+1)*sliceAngle);
-		// (NOTE: Lattitude = 0 @equator; -90deg @south pole; +90deg at north pole)
-		// (       use cos(lat) to set slice radius, sin(lat) to set slice z coord)
-		// Go around entire slice; start at x axis, proceed in CCW direction
-		// (as seen from origin inside the sphere), generating TRIANGLE_STRIP verts.
-		// The vertex-counter 'v' starts at 0 at the start of each slice, but:
-		// --the first slice (the South-pole end-cap) begins with v=1, because
-		// 		its first vertex is on the TOP (northwards) side of the tri-strip
-		// 		to ensure correct winding order (tri-strip's first triangle is CCW
-		//		when seen from the outside of the sphere).
-		// --the last slice (the North-pole end-cap) ends early (by one vertex)
-		//		because its last vertex is on the BOTTOM (southwards) side of slice.
-		//
-		if(s==slices-1) isLastSlice=1;// (flag: skip last vertex of the last slice).
-		for(v=isFirstSlice;    v< 2*sliceVerts-isLastSlice;   v++,j+=floatsPerVertex)
-		{						// for each vertex of this slice,
-			if(v%2 ==0) { // put vertices with even-numbered v at slice's bottom edge;
-										// by circling CCW along longitude (east-west) angle 'theta':
-										// (0 <= theta < 360deg, increases 'eastward' on sphere).
-										// x,y,z,w == cos(theta),sin(theta), 1.0, 1.0
-										// where			theta = 2*PI*(v/2)/capVerts = PI*v/capVerts
-				sphVerts[j  ] = cosBot * Math.cos(Math.PI * v/sliceVerts);	// x
-				sphVerts[j+1] = cosBot * Math.sin(Math.PI * v/sliceVerts);	// y
-				sphVerts[j+2] = sinBot;																			// z
-				sphVerts[j+3] = 1.0;																				// w.
-			}
-			else {	// put vertices with odd-numbered v at the the slice's top edge
-							// (why PI and not 2*PI? because 0 <= v < 2*sliceVerts
-							// and thus we can simplify cos(2*PI* ((v-1)/2)*sliceVerts)
-							// (why (v-1)? because we want longitude angle 0 for vertex 1).
-				sphVerts[j  ] = cosTop * Math.cos(Math.PI * (v-1)/sliceVerts); 	// x
-				sphVerts[j+1] = cosTop * Math.sin(Math.PI * (v-1)/sliceVerts);	// y
-				sphVerts[j+2] = sinTop;		// z
-				sphVerts[j+3] = 1.0;
-			}
-			// finally, set some interesting colors for vertices:
-			if(v==0) { 	// Troublesome vertex: this vertex gets shared between 3
-			// important triangles; the last triangle of the previous slice, the
-			// anti-diagonal 'step' triangle that connects previous slice and next
-			// slice, and the first triangle of that next slice.  Smooth (Gouraud)
-			// shading of this vertex prevents us from choosing separate colors for
-			// each slice.  For a better solution, use the 'Degenerate Stepped Spiral'
-			// (Method 3) described in the Lecture Notes.
-				sphVerts[j+4]=errColr[0];
-				sphVerts[j+5]=errColr[1];
-				sphVerts[j+6]=errColr[2];
-				}
-			else if(isFirstSlice==1) {
-				sphVerts[j+4]=botColr[0];
-				sphVerts[j+5]=botColr[1];
-				sphVerts[j+6]=botColr[2];
-				}
-			else if(isLastSlice==1) {
-				sphVerts[j+4]=topColr[0];
-				sphVerts[j+5]=topColr[1];
-				sphVerts[j+6]=topColr[2];
-			}
-			else {	// for all non-top, not-bottom slices, set vertex colors randomly
-					sphVerts[j+4]= 0.8;  	// 0.0 <= red <= 0.5
-					sphVerts[j+5]= 0.8;		// 0.0 <= grn <= 0.5
-					sphVerts[j+6]= 0.8;		// 0.0 <= blu <= 0.5
-			}
-		}
-	}
+    // Create dome-shaped top slice of sphere at z=+1
+    // s counts slices; v counts vertices; 
+    // j counts array elements (vertices * elements per vertex)
+    var cos0 = 0.0;					// sines,cosines of slice's top, bottom edge.
+    var sin0 = 0.0;
+    var cos1 = 0.0;
+    var sin1 = 0.0;
+    var j = 0;							// initialize our array index
+    var isLast = 0;
+    var isFirst = 1;
+    for (s = 0; s < slices; s++) {	// for each slice of the sphere,
+        // find sines & cosines for top and bottom of this slice
+        if (s == 0) {
+            isFirst = 1;	// skip 1st vertex of 1st slice.
+            cos0 = 1.0; 	// initialize: start at north pole.
+            sin0 = 0.0;
+        }
+        else {					// otherwise, new top edge == old bottom edge
+            isFirst = 0;
+            cos0 = cos1;
+            sin0 = sin1;
+        }								// & compute sine,cosine for new bottom edge.
+        cos1 = Math.cos((s + 1) * sliceAngle);
+        sin1 = Math.sin((s + 1) * sliceAngle);
+        // go around the entire slice, generating TRIANGLE_STRIP verts
+        // (Note we don't initialize j; grows with each new attrib,vertex, and slice)
+        if (s == slices - 1) isLast = 1;	// skip last vertex of last slice.
+        for (v = isFirst; v < 2 * sliceVerts - isLast; v++, j += floatsPerVertex) {
+            if (v % 2 == 0) {				// put even# vertices at the the slice's top edge
+                // (why PI and not 2*PI? because 0 <= v < 2*sliceVerts
+                // and thus we can simplify cos(2*PI(v/2*sliceVerts))  
+                sphVerts[j] = sin0 * Math.cos(Math.PI * (v) / sliceVerts);
+                sphVerts[j + 1] = sin0 * Math.sin(Math.PI * (v) / sliceVerts);
+                sphVerts[j + 2] = cos0;
+				sphVerts[j + 3] = 1.0;
+            }
+            else { 	// put odd# vertices around the slice's lower edge;
+                // x,y,z,w == cos(theta),sin(theta), 1.0, 1.0
+                // 					theta = 2*PI*((v-1)/2)/capVerts = PI*(v-1)/capVerts
+                sphVerts[j] = sin1 * Math.cos(Math.PI * (v - 1) / sliceVerts);		// x
+                sphVerts[j + 1] = sin1 * Math.sin(Math.PI * (v - 1) / sliceVerts);		// y
+                sphVerts[j + 2] = cos1;	
+				sphVerts[j + 3] = 1.0;				
+            }
+            if (s == 0) {	// finally, set some interesting colors for vertices:
+
+                sphVerts[j + 4] = sin1 * Math.cos(Math.PI * (v - 1) / sliceVerts);
+                sphVerts[j + 5] = sin1 * Math.sin(Math.PI * (v - 1) / sliceVerts);
+                sphVerts[j + 6] = cos1;
+            }
+            else if (s == slices - 1) {
+                sphVerts[j + 4] = sin1 * Math.cos(Math.PI * (v - 1) / sliceVerts);
+                sphVerts[j + 5] = sin1 * Math.sin(Math.PI * (v - 1) / sliceVerts);
+                sphVerts[j + 6] = cos1;
+            }
+            else {
+                sphVerts[j + 4] = sin1 * Math.cos(Math.PI * (v - 1) / sliceVerts);
+                sphVerts[j + 5] = sin1 * Math.sin(Math.PI * (v - 1) / sliceVerts);
+                sphVerts[j + 6] = cos1;
+            }
+
+        }
+    }
 }
 
 function makeTorus2() {
