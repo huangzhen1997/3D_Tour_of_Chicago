@@ -92,12 +92,12 @@ var VSHADER_SOURCE =
         'vec3 reflectionDirection = reflect(-lightDirection, normal);\n' +
         'float temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
         'vec3 spec = u_Specular * u_Ks * temp;\n' +
-        'fragworld = vec4((ambient + spec + diffuse + emissive), 1.0);\n' +
+        'fragworld = vec4((ambient + spec + diffuse*nDotL + emissive), 1.0);\n' +
 
         'reflectionDirection = reflect(-hLightDirection, normal);\n' +
         'temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
         'hspec = u_HeadlightSpecular * u_Ks * temp;\n' +
-        'fragHead = vec4((ambient + hspec + hdiff*e64), 1.0);\n' +
+        'fragHead = vec4((ambient + hspec + hdiff*nDotHl*e64), 1.0);\n' +
 
    '}\n' +
 
@@ -203,12 +203,12 @@ var FSHADER_SOURCE =
         'vec3 reflectionDirection = reflect(-lightDirection, v_Normal);\n' +
         'float temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
         'vec3 spec = u_Specular * u_Ks * temp;\n' +
-        'fragworld = vec4((ambient + spec + diffuse + emissive), 1.0);\n' +
+        'fragworld = vec4((ambient + spec + diffuse*nDotL + emissive), 1.0);\n' +
 
         'reflectionDirection = reflect(-hLightDirection, v_Normal);\n' +
         'temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
         'hspec = u_HeadlightSpecular * u_Ks * temp;\n' +
-        'fragHead = vec4((ambient + hspec + hdiff*e64), 1.0);\n' +
+        'fragHead = vec4((ambient + hspec + hdiff*nDotHl*e64), 1.0);\n' +
 
    '}\n' +
 
@@ -1511,89 +1511,6 @@ function drawAll(){
 	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
 	drawCylinder();
 	
-	
-	
-	
-	//===================Draw Second OBJECT(WindMill):
-
- modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
-  modelMatrix.setPerspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
-                           vpAspect,   // Image Aspect Ratio: camera lens width/height
-                           1.0,   // camera z-near distance (always positive; frustum begins at z = -znear)
-                        100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
-
-  modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_atX, g_atY, g_lookZ,      // look-at point
-                      0.0,  0.0,  1.0);     // 'up' vector
-
-       // SAVE world coord system;
-    modelMatrix.translate( 0.4, 0, 0.0);
-  	modelMatrix.scale(0.1, 0.1, 0.1);				// shrink by 10X:
-
-
-	
-	//drawGrid();	
-	 modelMatrix.translate(0,30,3);  
-
-
-
-	modelMatrix.scale(2, 2, 2);
-	modelMatrix.rotate(90, 0, 0, 1);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix.translate(0,0,2.25);
-	modelMatrix.scale(0.5, 0.5, 0.5);
-	modelMatrix.rotate(90, 0, 0, 1);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawSphere();
-
-	modelMatrix.translate(-1.6,0,0);
-	modelMatrix.scale(0.5, 0.5, 0.5);
-	modelMatrix.rotate(90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder2();
-
-	modelMatrix.translate(0,0,-2);
-	modelMatrix.scale(1, 1, 1);
-	modelMatrix.rotate(90, 0, 0, 1);
-	modelMatrix.rotate(g_angle01, 0,0,1);
-	drawSphere();
-
-	pushMatrix(modelMatrix);  // SAVE world drawing coords.
-	modelMatrix.translate(-7,0,0);
-	modelMatrix.scale(3, 0.5, 0.5);
-	modelMatrix.rotate(90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-    pushMatrix(modelMatrix);  // SAVE world drawing coords.
-
-  	modelMatrix.translate(7,0,0);
-	modelMatrix.scale(3, 0.5, 0.5);
-	modelMatrix.rotate(-90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-    pushMatrix(modelMatrix);  // SAVE world drawing coords.
-
-  	modelMatrix.translate(0,-7,0);
-	modelMatrix.scale(0.5, 3, 0.5);
-	modelMatrix.rotate(-90, 1, 0, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-    pushMatrix(modelMatrix);  // SAVE world drawing coords.
-
-  	modelMatrix.translate(0,7,0);
-	modelMatrix.scale(0.5, 3, 0.5);
-	modelMatrix.rotate(90, 1, 0, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
 
 
 	//===================Draw Second OBJECT(WindMill):
@@ -1675,171 +1592,6 @@ function drawAll(){
 	modelMatrix.rotate(90, 1, 0, 0);
 	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
 	drawCylinder();
-
-
-	modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
-  modelMatrix.setPerspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
-                           vpAspect,   // Image Aspect Ratio: camera lens width/height
-                           1.0,   // camera z-near distance (always positive; frustum begins at z = -znear)
-                        100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
-
-  modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_atX, g_atY, g_lookZ,      // look-at point
-                      0.0,  0.0,  1.0);     // 'up' vector
-
-       // SAVE world coord system;
-    modelMatrix.translate( -5.4, 0, 0.0);
-  	modelMatrix.scale(0.1, 0.1, 0.1);				// shrink by 10X:
-
-
-	
-	//drawGrid();	
-	 modelMatrix.translate(0,30,3);  
-
-
-
-	modelMatrix.scale(2, 2, 2);
-	modelMatrix.rotate(90, 0, 0, 1);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix.translate(0,0,2.25);
-	modelMatrix.scale(0.5, 0.5, 0.5);
-	modelMatrix.rotate(90, 0, 0, 1);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawSphere();
-
-	modelMatrix.translate(-1.6,0,0);
-	modelMatrix.scale(0.5, 0.5, 0.5);
-	modelMatrix.rotate(90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder2();
-
-	modelMatrix.translate(0,0,-2);
-	modelMatrix.scale(1, 1, 1);
-	modelMatrix.rotate(90, 0, 0, 1);
-	modelMatrix.rotate(g_angle01, 0,0,1);
-	drawSphere();
-
-	pushMatrix(modelMatrix);  // SAVE world drawing coords.
-	modelMatrix.translate(-7,0,0);
-	modelMatrix.scale(3, 0.5, 0.5);
-	modelMatrix.rotate(90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-    pushMatrix(modelMatrix);  // SAVE world drawing coords.
-
-  	modelMatrix.translate(7,0,0);
-	modelMatrix.scale(3, 0.5, 0.5);
-	modelMatrix.rotate(-90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-    pushMatrix(modelMatrix);  // SAVE world drawing coords.
-
-  	modelMatrix.translate(0,-7,0);
-	modelMatrix.scale(0.5, 3, 0.5);
-	modelMatrix.rotate(-90, 1, 0, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-    pushMatrix(modelMatrix);  // SAVE world drawing coords.
-
-  	modelMatrix.translate(0,7,0);
-	modelMatrix.scale(0.5, 3, 0.5);
-	modelMatrix.rotate(90, 1, 0, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-
-
-
-
-
-	modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
-  modelMatrix.setPerspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
-                           vpAspect,   // Image Aspect Ratio: camera lens width/height
-                           1.0,   // camera z-near distance (always positive; frustum begins at z = -znear)
-                        100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
-
-  modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_atX, g_atY, g_lookZ,      // look-at point
-                      0.0,  0.0,  1.0);     // 'up' vector
-
-       // SAVE world coord system;
-    modelMatrix.translate( -7.4, 0, 0.0);
-  	modelMatrix.scale(0.1, 0.1, 0.1);				// shrink by 10X:
-
-
-	
-	//drawGrid();	
-	 modelMatrix.translate(0,30,3);  
-
-
-
-	modelMatrix.scale(2, 2, 2);
-	modelMatrix.rotate(90, 0, 0, 1);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix.translate(0,0,2.25);
-	modelMatrix.scale(0.5, 0.5, 0.5);
-	modelMatrix.rotate(90, 0, 0, 1);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawSphere();
-
-	modelMatrix.translate(-1.6,0,0);
-	modelMatrix.scale(0.5, 0.5, 0.5);
-	modelMatrix.rotate(90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder2();
-
-	modelMatrix.translate(0,0,-2);
-	modelMatrix.scale(1, 1, 1);
-	modelMatrix.rotate(90, 0, 0, 1);
-	modelMatrix.rotate(g_angle01, 0,0,1);
-	drawSphere();
-
-	pushMatrix(modelMatrix);  // SAVE world drawing coords.
-	modelMatrix.translate(-7,0,0);
-	modelMatrix.scale(3, 0.5, 0.5);
-	modelMatrix.rotate(90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-    pushMatrix(modelMatrix);  // SAVE world drawing coords.
-
-  	modelMatrix.translate(7,0,0);
-	modelMatrix.scale(3, 0.5, 0.5);
-	modelMatrix.rotate(-90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-    pushMatrix(modelMatrix);  // SAVE world drawing coords.
-
-  	modelMatrix.translate(0,-7,0);
-	modelMatrix.scale(0.5, 3, 0.5);
-	modelMatrix.rotate(-90, 1, 0, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-    pushMatrix(modelMatrix);  // SAVE world drawing coords.
-
-  	modelMatrix.translate(0,7,0);
-	modelMatrix.scale(0.5, 3, 0.5);
-	modelMatrix.rotate(90, 1, 0, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-
-
 
 
 	//===================Draw Third OBJECT(Helicopter):
