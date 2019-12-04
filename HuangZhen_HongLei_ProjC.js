@@ -1388,7 +1388,7 @@ function drawAll(){
   // Set the light direction (in the world coordinate)
   gl.uniform3f(u_LightPosition, 5.0, 8.0, 7.0);
   // Set the ambient light
-  gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+  gl.uniform3f(u_AmbientLight, 1.0, 1.0, 1.0);
 
   gl.uniform3f(u_Specular,1.0, 1.0, 1.0);
 
@@ -1656,7 +1656,7 @@ function drawDiamond(){
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
       gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
-    gl.uniform3f(u_Ka, 0.1, 0.1, 1.0);
+    gl.uniform3f(u_Ka, 0.1, 0.1, 0.1);
     gl.uniform3f(u_Kd, 0.6, 0.0, 0.0);
     gl.uniform3f(u_Ks, 0.6, 0.6, 0.6);
     gl.uniform1i(u_KShiny, 100);
