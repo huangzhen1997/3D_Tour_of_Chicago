@@ -235,7 +235,7 @@ function main() {
   // Set the light color (white)
   gl.uniform3f(u_LightColor, 0.8, 0.8, 0.8);
   // Set the light direction (in the world coordinate)
-  //gl.uniform3f(u_LightPosition, -2, 2, 5);
+  gl.uniform3f(u_LightPosition, 0, 0, 0);
   // Set the ambient light
   gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
 
@@ -1232,7 +1232,7 @@ function drawAll(){
     gl.uniform1i(wlOn, 1);
     gl.uniform3f(u_LightColor, 0.8, 0.8, 0.8);
   // Set the light direction (in the world coordinate)
-  gl.uniform3f(u_LightPosition, -2.0, 2.0, 5.0);
+  gl.uniform3f(u_LightPosition, 5.0, 8.0, 7.0);
   // Set the ambient light
   gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
 
@@ -2408,7 +2408,7 @@ function drawDiamond(){
 
 	
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
-	//gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
+
   normalMatrix.setInverseOf(modelMatrix);
   normalMatrix.transpose();
   // Pass the transformation matrix for normals to u_NormalMatrix
@@ -2427,7 +2427,7 @@ function drawDiamond(){
 function drawCylinder(){
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
   // Draw just the the cylinder's vertices:
-	//gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
+
   normalMatrix.setInverseOf(modelMatrix);
   normalMatrix.transpose();
   // Pass the transformation matrix for normals to u_NormalMatrix
@@ -2443,7 +2443,7 @@ function drawCylinder(){
 
 function drawTentacle(){
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
-    //gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
+
   normalMatrix.setInverseOf(modelMatrix);
   normalMatrix.transpose();
   // Pass the transformation matrix for normals to u_NormalMatrix
@@ -2460,7 +2460,7 @@ function drawTentacle(){
 
 function drawCylinder2(){
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
-    //gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
+
   normalMatrix.setInverseOf(modelMatrix);
   normalMatrix.transpose();
   // Pass the transformation matrix for normals to u_NormalMatrix
@@ -2478,12 +2478,17 @@ function drawCylinder2(){
 function drawGrid(){
 
 	 gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
-     //gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
+
    normalMatrix.setInverseOf(modelMatrix);
   normalMatrix.transpose();
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
      // Draw just the ground-plane's vertices
+	 gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
+    gl.uniform3f(u_Ka, 0.0215, 0.1745, 0.0215);
+    gl.uniform3f(u_Kd, 0.07568, 0.61424, 0.07568);
+    gl.uniform3f(u_Ks, 0.633, 0.727811, 0.633);
+    gl.uniform1i(u_KShiny, 76.8);
      gl.drawArrays(gl.LINES, 								// use this drawing primitive, and
   						  gndStart/floatsPerVertex,	// start at this vertex number, and
   						  gndVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -2493,11 +2498,11 @@ function drawGrid(){
 function drawTorus(){
 
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
-     //gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ); 
-    normalMatrix.setInverseOf(modelMatrix);
-    normalMatrix.transpose();
+
+  normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
   // Pass the transformation matrix for normals to u_NormalMatrix
-    gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
+  gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   		// Draw just the torus's vertices
 		    gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
     gl.uniform3f(u_Ka, 0.05375, 0.05, 0.06625);
@@ -2512,7 +2517,7 @@ function drawTorus(){
 function drawSphere(){
 
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
-    //gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
+
   normalMatrix.setInverseOf(modelMatrix);
   normalMatrix.transpose();
   // Pass the transformation matrix for normals to u_NormalMatrix
@@ -2531,7 +2536,7 @@ function drawSphere(){
 function drawAxes(){
 
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
-    //gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
+
   normalMatrix.setInverseOf(modelMatrix);
   normalMatrix.transpose();
   // Pass the transformation matrix for normals to u_NormalMatrix
@@ -2544,7 +2549,7 @@ function drawAxes(){
 
 function drawRectangle(){
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
-   //gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
+
   normalMatrix.setInverseOf(modelMatrix);
   normalMatrix.transpose();
   // Pass the transformation matrix for normals to u_NormalMatrix
