@@ -14,6 +14,12 @@ var VSHADER_SOURCE =
   'attribute vec4 a_Normal;\n' +
   'attribute vec4 a_Color;\n' +
   'varying vec4 v_Color;\n' +
+  'varying vec3 normal; \n' +					// Why Vec3? its not a point, hence w==0
+  'varying vec3 v_Kd;\n' +
+  //'varying vec3 v_Ks;\n' +
+  'varying vec3 v_Ke;\n' +
+  'varying vec4 vertexPosition;\n' +
+  'varying vec3 v_eyePosWorld;\n' +
   'uniform vec3 u_Specular;\n' +
   'uniform vec3 u_eyePosWorld; \n' +
   
@@ -26,14 +32,25 @@ var VSHADER_SOURCE =
 
   'uniform int headlightOn;\n' +
   'uniform int worldlightOn;\n' +
+  'uniform int lightMode;\n' +
+  'uniform int shadeMode;\n' +
+  //'varying vec2 vworldlightOn;\n' +
 
   ' void main() {\n' +
-
+  
   '  gl_Position = u_modelMatrix * a_Position;\n' +
      // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
-  '  vec3 normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
+  '  normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
      // Calculate world coordinate of vertex
-  '  vec4 vertexPosition = u_modelMatrix * a_Position;\n' +
+  '  vertexPosition = u_modelMatrix * a_Position;\n' +
+  '  v_Kd = u_Kd; \n' +
+  //'  v_Ks = u_Ks; \n' +
+  '  v_eyePosWorld = u_eyePosWorld; \n' +
+  
+  //'  v_worldlightOn = worldlightOn; \n' +
+  
+  
+  'if(shadeMode == 2){\n' +
      // Calculate the light direction and make it 1.0 in length
   '  vec3 lightDirection = normalize(u_LightPosition - vec3(vertexPosition));\n' +
   '  vec3 hLightDirection = normalize(u_HeadlightPosition - vec3(vertexPosition));\n' +
@@ -49,18 +66,15 @@ var VSHADER_SOURCE =
   '  vec3 eyeDirection = normalize(u_eyePosWorld.xyz - vec3(vertexPosition)); \n' +
   '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
 
-
-
-
-  '  float nDotH = max(dot(H, normal), 0.0); \n' +
-  'float e02 = nDotH*nDotH; \n' +
+    'float nDotH = max(dot(H, normal), 0.0); \n' +
+    'float e02 = nDotH*nDotH; \n' +
 	'float e04 = e02*e02; \n' +
 	'float e08 = e04*e04; \n' +
 	'float e16 = e08*e08; \n' +
 	'float e32 = e16*e16; \n' +
 	'float e64 = e32*e32; \n' +
 
-
+  //Blinn-Phong Lighting
   '  vec3 emissive = u_Ke;\n' +
   '  vec3 ambient = u_AmbientLight * u_Ka;\n' +  
   '  vec3 specular = u_Specular * u_Ks * e64;\n'  +
@@ -73,6 +87,20 @@ var VSHADER_SOURCE =
   'vec4 fragHead = vec4(hdiff + hspec,1.0);\n' +
 
   'vec4 fragworld = vec4(diffuse + ambient + specular + emissive, 1.0);\n' + 
+  //Phong Lighting
+  'if(lightMode == 2){\n' +
+        'vec3 reflectionDirection = reflect(-lightDirection, normal);\n' +
+        'float temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
+        'vec3 spec = u_Specular * u_Ks * temp;\n' +
+        'fragworld = vec4((ambient + spec + diffuse + emissive), 1.0);\n' +
+
+        'reflectionDirection = reflect(-hLightDirection, normal);\n' +
+        'temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
+        'hspec = u_HeadlightSpecular * u_Ks * temp;\n' +
+        'fragHead = vec4((ambient + hspec + hdiff*e64), 1.0);\n' +
+
+   '}\n' +
+
 
   ' if (headlightOn==1 && worldlightOn==1){\n'+
   '  v_Color = fragHead + fragworld;\n' +
@@ -82,16 +110,121 @@ var VSHADER_SOURCE =
   ' v_Color = fragHead;}\n'+
   ' else{ v_Color = fragworld;}\n'+
 
+  '}\n' +
   '}\n';
 
 // Fragment shader program----------------------------------
 var FSHADER_SOURCE =
 //  '#ifdef GL_ES\n' +
-  'precision mediump float;\n' +
+  'precision highp float;\n' +
+  'precision highp int;\n' +
 //  '#endif GL_ES\n' +
+
+
   'varying vec4 v_Color;\n' +
+  'varying vec3 normal;\n' +
+  'varying vec4 vertexPosition;\n' +
+  'varying vec3 v_Kd;\n' +
+  'varying vec3 v_eyePosWorld;\n' +
+  //'varying vec3 v_Ks;\n' +
+  'varying vec3 v_Ke;\n' +
+  //Uniforms
+
+
+  //Material uniforms
+  'uniform vec3 u_Ks;\n' +  //specular
+  'uniform vec3 u_Ke;\n' +  //emissive
+  'uniform vec3 u_Ka;\n' +  //ambience
+  'uniform vec3 u_Kd; \n' + //diffuse
+  'uniform int u_KShiny;\n' + //shinyness
+
+  //Light uniforms
+  'uniform vec3 u_LightColor;\n' +     // Diffuse Light color
+  'uniform vec3 u_LightPosition;\n' +  // Position of the light source
+  'uniform vec3 u_AmbientLight;\n' +   // Ambient light
+  'uniform vec3 u_Specular;\n' +
+
+  //Headlight uniforms
+  'uniform vec3 u_HeadlightDiffuse;\n' + 
+  'uniform vec3 u_HeadlightPosition;\n' +  
+  'uniform vec3 u_HeadlightSpecular;\n' +
+
+  //Uniform to switch lighting modes
+  'uniform int lightMode;\n' +
+  'uniform int shadeMode;\n' +
+  'uniform int headlightOn;\n' +
+  'uniform int worldlightOn;\n' +
+  //'varying vec2 v_worldlightOn;\n' +
+  
+  
   'void main() {\n' +
+   'vec3 v_Normal = normalize(normal); \n' +
+       // Calculate the light direction and make it 1.0 in length
+   '  vec3 lightDirection = normalize(u_LightPosition - vec3(vertexPosition));\n' +
+   '  vec3 hLightDirection = normalize(u_HeadlightPosition - vec3(vertexPosition));\n' +
+
+     // The dot product of the light direction and the normal
+   '  float nDotL = max(dot(lightDirection, v_Normal), 0.0);\n' +
+   '  float nDotHl = max(dot(hLightDirection, v_Normal),0.0);\n' +
+     // Calculate the color due to diffuse reflection
+ 
+     // Calculate the color due to ambient reflection
+
+     // Add the surface colors due to diffuse reflection and ambient reflection
+   '  vec3 eyeDirection = normalize(v_eyePosWorld.xyz - vec3(vertexPosition)); \n' +
+   '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
+    'float nDotH = max(dot(H, v_Normal), 0.0); \n' +
+	
+	
+    'float e02 = nDotH*nDotH; \n' +
+	'float e04 = e02*e02; \n' +
+	'float e08 = e04*e04; \n' +
+	'float e16 = e08*e08; \n' +
+	'float e32 = e16*e16; \n' +
+	'float e64 = e32*e32; \n' +
+
+  //Blinn-Phong Lighting
+  '  vec3 emissive = u_Ke;\n' +
+  '  vec3 ambient = u_AmbientLight * u_Ka;\n' +  
+  '  vec3 specular = u_Specular * u_Ks * e64;\n'  +
+  '  vec3 diffuse = u_LightColor * v_Kd * nDotL;\n' +
+
+  '  vec3 hdiff = u_HeadlightDiffuse * v_Kd * nDotHl;\n' +
+  '  vec3 hspec = u_HeadlightSpecular * u_Ks * e32;\n' +
+
+
+  'vec4 fragHead = vec4(hdiff + hspec,1.0);\n' +
+
+  'vec4 fragworld = vec4(diffuse + ambient + specular + emissive, 1.0);\n' + 
+  
+  'vec4 frag;\n' +
+  //Phong Lighting
+  'if(lightMode == 2){\n' +
+        'vec3 reflectionDirection = reflect(-lightDirection, v_Normal);\n' +
+        'float temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
+        'vec3 spec = u_Specular * u_Ks * temp;\n' +
+        'fragworld = vec4((ambient + spec + diffuse + emissive), 1.0);\n' +
+
+        'reflectionDirection = reflect(-hLightDirection, v_Normal);\n' +
+        'temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
+        'hspec = u_HeadlightSpecular * u_Ks * temp;\n' +
+        'fragHead = vec4((ambient + hspec + hdiff*e64), 1.0);\n' +
+
+   '}\n' +
+
+  ' if (headlightOn==1 && worldlightOn==1){\n'+
+  '  frag = fragHead + fragworld;\n' +
+  '}\n'+
+ 
+  ' else if (headlightOn ==1 && worldlightOn==0){\n'+
+  ' frag = fragHead;}\n'+
+  ' else{ frag = fragworld;}\n'+
+  
+  '  gl_FragColor = frag;\n' +  
+  
+  ' if(shadeMode == 2){\n' +
   '  gl_FragColor = v_Color;\n' +
+  '}\n'+
   '}\n';
 
 // Global Variables----------------------------------
@@ -117,6 +250,20 @@ var u_NormalMatrix ;
   var u_LightPosition;
   var u_AmbientLight ;
   var u_Specular;
+  
+  var u_Ke;
+var u_Ks;
+var u_Ka;
+var u_Kd;
+var u_KShiny;
+
+var u_LightMode;
+var lMode = 1;
+var maxModes = 2;
+
+var u_ShadeMode;
+var sMode = 1;
+var maxsModes = 2;
 													// (x,y,z,w)position + (r,g,b)color
 													// Later, see if you can add:
 													// (x,y,z) surface normal + (tx,ty) texture addr.
@@ -207,7 +354,11 @@ function main() {
 
   hlOn = gl.getUniformLocation(gl.program, 'headlightOn');
   wlOn = gl.getUniformLocation(gl.program, 'worldlightOn');
-
+  
+  u_LightMode = gl.getUniformLocation(gl.program, 'lightMode');
+  u_ShadeMode = gl.getUniformLocation(gl.program, 'shadeMode');
+  
+  
   u_modelMatrix = gl.getUniformLocation(gl.program, 'u_modelMatrix');
   u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
   u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
@@ -223,7 +374,8 @@ function main() {
   u_Kd = gl.getUniformLocation(gl.program, 'u_Kd');
   u_KShiny = gl.getUniformLocation(gl.program, 'u_KShiny');
 
-
+  gl.uniform1i(u_LightMode, lMode);
+  gl.uniform1i(u_ShadeMode, sMode);
   gl.uniform3f(u_Ks, 1.0, 1.0, 1.0);
   gl.uniform3f(u_Ka, 1.0, 0.3, 0.3);
   gl.uniform3f(u_Kd, 0.3, 0.3, 0.3);
@@ -259,6 +411,8 @@ function tick(){
 	nuCanvas.height = innerHeight*3/4;
 	gl = getWebGLContext(nuCanvas);
 	gl.uniform3f(u_eyePosWorld, g_EyeX, g_EyeY, g_EyeZ);
+	gl.uniform1i(u_LightMode, lMode);
+	gl.uniform1i(u_ShadeMode, sMode);
     //gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
 
     animate();  // Update the rotation angle
@@ -2930,7 +3084,13 @@ function keydown(ev) {
         worldlightOn = true;
     }
 
-
+	if (ev.keyCode == 77){
+		switchlModes();
+	}
+	
+	if (ev.keyCode == 76){
+		switchsModes();
+	}
 
 	if(ev.keyCode == 38) { // The up arrow key was pressed
 //      g_EyeX += 0.01;
@@ -3002,6 +3162,24 @@ function keydown(ev) {
 
     drawAll();
 }
+
+function switchlModes() {
+    if (lMode == maxModes) {
+        lMode = 1;
+    }
+    else
+        lMode++;
+}
+
+function switchsModes() {
+    if (sMode == maxsModes) {
+        sMode = 1;
+    }
+    else
+        sMode++;
+	console.log(sMode);
+}
+
 
 function myKeyUp(kev) {
 //===============================================================================
