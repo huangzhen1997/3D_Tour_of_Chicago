@@ -1450,308 +1450,6 @@ function drawAll(){
 	modelMatrix.scale(0.01, 0.01, 0.01);
 	
 	
-//===================Draw FIRST OBJECT(Tower):
-
-  //-------Draw lower Spinning Cylinder:
-  modelMatrix.scale(1/7,1/7,1/7);
-	modelMatrix.translate(-0.6,0.6, 0.0);
-	modelMatrix.scale(1.5, 1.5, 1.5);
-	//modelMatrix.rotate(90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01, 0,1,1);
-	// Drawing:
-  // Pass our current matrix to the vertex shaders:
-    drawCylinder();
-
-
-  //===========================================================
-  //
-	//pushMatrix(modelMatrix);  // SAVE world drawing coords.
-
-	modelMatrix.translate(0,0,2.5);
-	modelMatrix.scale(1, 1, 1);
-	modelMatrix.rotate(g_angle01, 0,0,1);
-	drawSphere();
-
-	pushMatrix(modelMatrix);  // SAVE world drawing coords.
-	
-	
-
-    modelMatrix.translate(-3,0, 0);
-	modelMatrix.scale(1, 1, 1);
-	modelMatrix.rotate(90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-	
-	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-	pushMatrix(modelMatrix);  // SAVE world drawing coords.
-    
-	
-	modelMatrix.translate(0,3, 0);
-	modelMatrix.scale(1, 1, 1);
-	modelMatrix.rotate(90, 1, 0, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-	pushMatrix(modelMatrix);  // SAVE world drawing coords.
-	
-    modelMatrix.translate(0,-3, 0);
-	modelMatrix.scale(1, 1, 1);
-	modelMatrix.rotate(-90, 1, 0, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-
-			  	modelMatrix = popMatrix();  // RESTORE 'world' drawing coords.
-  //===========================================================
-  //
-  pushMatrix(modelMatrix);  // SAVE world drawing coords.
-    modelMatrix.translate(3,0, 0);
-	modelMatrix.scale(1, 1, 1);
-	modelMatrix.rotate(-90, 0, 1, 0);
-	//modelMatrix.rotate(g_angle01*0.8, 0,1,1);
-	drawCylinder();
-	
-
-
-
-	//===================Draw Fourth OBJECT(Rectangle):
-	  //draw tower1
-    modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
-    modelMatrix.perspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
-                           vpAspect,   // Image Aspect Ratio: camera lens width/height
-                           1.0,   // camera z-near distance (always positive; frustum begins at z = -znear)
-                        100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
-
-    modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_atX, g_atY, g_lookZ,      // look-at point
-                      0.0,  0.0,  1.0);     // 'up' vector
-
-
-
-  //draw tower
-	//modelMatrix.translate( 0.4, -0.4, 0.0);
-	modelMatrix.translate(7,4,4);
-	modelMatrix.rotate(90,1,0,0);
-  modelMatrix.scale(5,5,5);
-  pushMatrix(modelMatrix);
-  modelMatrix.translate(0.2,-0.5,-0.2);
-  modelMatrix.scale(0.1, 0.15, 0.1);
-	drawRectangle();
-	
-
-//2
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0)
-  modelMatrix.translate(0,-0.1,-0.2);
-  modelMatrix.scale(0.1, 0.35, 0.1);
-  drawRectangle();
-
-  //1
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0)
-  modelMatrix.translate(-0.2,-0.4,-0.2);
-  modelMatrix.scale(0.1, 0.2, 0.1);
-  drawRectangle();
-
-
-//    //pos6
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0);
-  
-  modelMatrix.translate(0.2,-0.1,0);
-  modelMatrix.scale(0.1, 0.35, 0.1);
-  drawRectangle();
-      // Draw just the first set of vertices: start at vertex 0...
-
-
-//5
-  modelMatrix=popMatrix();
-  modelMatrix.translate(0,0,0);
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0)
-  modelMatrix.scale(0.1, 0.4, 0.1);
-  drawRectangle();
-
-  // //4
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0)
-  modelMatrix.translate(-0.2,-0.1,0);
-
-  modelMatrix.scale(0.1, 0.35, 0.1);
-  drawRectangle();
-
-   //pos9
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0);
-  
-  modelMatrix.translate(0.2,-0.4,0.2);
-  modelMatrix.scale(0.1, 0.2, 0.1);
-  drawRectangle();
-
-  //8
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0);
-  
-  modelMatrix.translate(0,0,0.2);
-  modelMatrix.scale(0.1, 0.4, 0.1);
-  drawRectangle();
-
-
-  //7
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0);
-  
-  modelMatrix.translate(-0.2,-0.5,0.2);
-  modelMatrix.scale(0.1, 0.15, 0.1);
-  drawRectangle();
-
-
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  modelMatrix.translate(0,0.8,0.2);
-  modelMatrix.scale(0.09, 0.45, 0.09);
-  modelMatrix.scale(0.09, 0.45, 0.09);
-  // modelMatrix.scale(0.09, 0.45, 0.09);
-  drawTentacle();
-
-//tentacle 2
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  modelMatrix.translate(0.01,0.8,-0.0);
-  modelMatrix.scale(0.09, 0.45, 0.09);
-  modelMatrix.scale(0.09, 0.45, 0.09);
-  // modelMatrix.scale(0.09, 0.45, 0.09);
-  drawTentacle();
-  
-  
- 
-
-
-
-
-
-  //===================Draw Fifth OBJECT(Rectangle):
-    //draw tower1
-    modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
-    modelMatrix.perspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
-                           vpAspect,   // Image Aspect Ratio: camera lens width/height
-                           1.0,   // camera z-near distance (always positive; frustum begins at z = -znear)
-                        100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
-
-    modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_atX, g_atY, g_lookZ,      // look-at point
-                      0.0,  0.0,  1.0);     // 'up' vector
-
-
-
-  //draw tower
-  //modelMatrix.translate( 0.4, -0.4, 0.0);
-
-  modelMatrix.translate(7,0,4);
-  modelMatrix.rotate(90,1,0,0);
-  modelMatrix.scale(5,5,5);
-  pushMatrix(modelMatrix);
-  modelMatrix.translate(0.2,-0.5,-0.2);
-  modelMatrix.scale(0.1, 0.15, 0.1);
-  drawRectangle();
-  
-
-//2
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0)
-  modelMatrix.translate(0,-0.1,-0.2);
-  modelMatrix.scale(0.1, 0.35, 0.1);
-  drawRectangle();
-
-  //1
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0)
-  modelMatrix.translate(-0.2,-0.4,-0.2);
-  modelMatrix.scale(0.1, 0.2, 0.1);
-  drawRectangle();
-
-
-//    //pos6
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0);
-  
-  modelMatrix.translate(0.2,-0.1,0);
-  modelMatrix.scale(0.1, 0.35, 0.1);
-  drawRectangle();
-      // Draw just the first set of vertices: start at vertex 0...
-
-
-//5
-  modelMatrix=popMatrix();
-  modelMatrix.translate(0,0,0);
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0)
-  modelMatrix.scale(0.1, 0.4, 0.1);
-  drawRectangle();
-
-  // //4
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0)
-  modelMatrix.translate(-0.2,-0.1,0);
-  modelMatrix.scale(0.1, 0.35, 0.1);
-  drawRectangle();
-
-   //pos9
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0);
-  
-  modelMatrix.translate(0.2,-0.4,0.2);
-  modelMatrix.scale(0.1, 0.2, 0.1);
-  drawRectangle();
-
-  //8
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0);
-  
-  modelMatrix.translate(0,0,0.2);
-  modelMatrix.scale(0.1, 0.4, 0.1);
-  drawRectangle();
-
-
-  //7
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  //modelMatrix.rotate(-currentAngle,1,1,0);
-  
-  modelMatrix.translate(-0.2,-0.5,0.2);
-  modelMatrix.scale(0.1, 0.15, 0.1);
-  drawRectangle();
-
-
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  modelMatrix.translate(0,0.8,0.2);
-  modelMatrix.scale(0.09, 0.45, 0.09);
-  modelMatrix.scale(0.09, 0.45, 0.09);
-  // modelMatrix.scale(0.09, 0.45, 0.09);
-  drawTentacle();
-
-//tentacle 2
-  modelMatrix=popMatrix();
-  pushMatrix(modelMatrix);
-  modelMatrix.translate(0.01,0.8,-0.0);
-  modelMatrix.scale(0.09, 0.45, 0.09);
-  modelMatrix.scale(0.09, 0.45, 0.09);
-  // modelMatrix.scale(0.09, 0.45, 0.09);
-  drawTentacle();
 
 
 
@@ -1772,8 +1470,9 @@ function drawAll(){
   //draw tower
   //modelMatrix.translate( 0.4, -0.4, 0.0);
 
-  modelMatrix.translate(7,-4,4);
+  modelMatrix.translate(-10,-10,4);
   modelMatrix.rotate(90,1,0,0);
+  modelMatrix.rotate(180,0,1,0);
   modelMatrix.scale(5,5,5);
   pushMatrix(modelMatrix);
   modelMatrix.translate(0.2,-0.5,-0.2);
@@ -1891,22 +1590,31 @@ function drawAll(){
     modelMatrix.translate(-1,8,1);
     pushMatrix(modelMatrix);
     modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01,0,1,0);
 	drawDiamond();
 
 	modelMatrix = popMatrix();
 	pushMatrix(modelMatrix);
 	modelMatrix.translate(0,0,1);
     modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01*2,0,1,0);
 	drawDiamond();
 
 	modelMatrix = popMatrix();
 	pushMatrix(modelMatrix);
 	modelMatrix.translate(0,0,2);
     modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01*3,0,1,0);
 	drawDiamond();
 	
 
-
+	modelMatrix = popMatrix();
+	pushMatrix(modelMatrix);
+	modelMatrix.translate(0,0,2.5);
+    modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01*3,0,1,0);
+    modelMatrix.scale(0.4,0.4,0.4);
+	drawSphere();
 
 
 
@@ -1923,7 +1631,7 @@ function drawAll(){
                      g_atX, g_atY, g_lookZ,      // look-at point
                       0.0,  0.0,  1.0);     // 'up' vector
 					  
-    modelMatrix.translate(-4,0,3);
+    modelMatrix.translate(0,0,3);
     modelMatrix.rotate(-g_angle01,0,0,1);
     
 	modelMatrix.scale(3, 3, 3);
@@ -1948,9 +1656,10 @@ function drawDiamond(){
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
       gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
-    gl.uniform3f(u_Ka, 0.19225, 0.19225, 0.19225);
-    gl.uniform3f(u_Kd, 0.50754, 0.50754, 0.507543);
-    gl.uniform3f(u_Ks, 0.508273, 0.508273, 0.508273);
+    gl.uniform3f(u_Ka, 0.1, 0.1, 1.0);
+    gl.uniform3f(u_Kd, 0.6, 0.0, 0.0);
+    gl.uniform3f(u_Ks, 0.6, 0.6, 0.6);
+    gl.uniform1i(u_KShiny, 100);
     gl.drawArrays(gl.TRIANGLES,				// use this drawing primitive, and
   							diamondStart/floatsPerVertex, // start at this vertex number, and
   							DiamondVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -1983,9 +1692,10 @@ function drawTentacle(){
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
   gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
-    gl.uniform3f(u_Ka, 0.329412, 0.223529, 0.027451);
-    gl.uniform3f(u_Kd, 0.780392, 0.568627, 0.113725);
-    gl.uniform3f(u_Ks, 0.992157, 0.941176, 0.807843);
+    gl.uniform3f(u_Ka, 1, 1, 1);
+    gl.uniform3f(u_Kd, 1, 1, 1);
+    gl.uniform3f(u_Ks, 1, 1, 1);
+    gl.uniform1i(u_KShiny, 100);
     gl.drawArrays(gl.TRIANGLES,				// use this drawing primitive, and
   							polyStart/floatsPerVertex, // start at this vertex number, and
   							Polys.length/floatsPerVertex);	// draw this many vertices.
