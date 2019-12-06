@@ -1,15 +1,27 @@
 // Vertex shader program----------------------------------
 var VSHADER_SOURCE =
+
+    'precision highp float;\n' +
+    'precision highp int;\n' +
+	
+	
+	'struct LampT {\n' + // Describes one point-like Phong light source
+    '  vec3 pos;\n' + // (x,y,z,w); w==1.0 for local light at x,y,z position
+    '  vec3 ambi;\n' + // Ia ==  ambient light source strength (r,g,b)
+    '  vec3 diff;\n' + // Id ==  diffuse light source strength (r,g,b)
+    '  vec3 spec;\n' + // Is == specular light source strength (r,g,b)
+    '}; \n' +
+    'struct MatlT {\n' + // Describes one Phong material by its reflectances:
+    '  vec3 emit;\n' + // Ke: emissive -- surface 'glow' amount (r,g,b);
+    '  vec3 ambi;\n' + // Ka: ambient reflectance (r,g,b)
+    '  vec3 diff;\n' + // Kd: diffuse reflectance (r,g,b)
+    '  vec3 spec;\n' + // Ks: specular reflectance (r,g,b)
+    '  int shiny;\n' + // Kshiny: specular exponent (integer >= 1; typ. <200)
+    '};\n' +
+	
   'uniform mat4 u_modelMatrix;\n' +
   'uniform mat4 u_NormalMatrix;\n' +
-  'uniform vec3 u_LightColor;\n' +
-  'uniform vec3 u_LightPosition; \n' +
-  'uniform vec3 u_AmbientLight;\n' +
-
-  'uniform vec3 u_HeadlightPosition;\n' +
-  'uniform vec3 u_HeadlightDiffuse;\n' +
-  'uniform vec3 u_HeadlightSpecular;\n' +
-
+  
   'attribute vec4 a_Position;\n' +
   'attribute vec4 a_Normal;\n' +
   'attribute vec4 a_Color;\n' +
@@ -20,16 +32,18 @@ var VSHADER_SOURCE =
   'varying vec3 v_Ke;\n' +
   'varying vec4 vertexPosition;\n' +
   'varying vec3 v_eyePosWorld;\n' +
-  'uniform vec3 u_Specular;\n' +
   'uniform vec3 u_eyePosWorld; \n' +
   
-    //Material uniforms
-  'uniform vec3 u_Ks;\n' +  //specular
-  'uniform vec3 u_Ke;\n' +  //emissive
-  'uniform vec3 u_Ka;\n' +  //ambience
-  'uniform vec3 u_Kd; \n' + //diffuse
-  'uniform int u_KShiny;\n' + //shinyness
+  //WorldLight and HeadLight Source uniforms
+  'uniform LampT u_worldLight;\n' + // Array of all light sources.
+  'uniform LampT u_headLight;\n' + // Array of all light sources.
+  
 
+	
+    //Material uniforms
+  'uniform MatlT u_MatlSet;\n' + // Array of all materials.
+
+	//Control uniforms
   'uniform int headlightOn;\n' +
   'uniform int worldlightOn;\n' +
   'uniform int lightMode;\n' +
@@ -43,7 +57,7 @@ var VSHADER_SOURCE =
   '  normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
      // Calculate world coordinate of vertex
   '  vertexPosition = u_modelMatrix * a_Position;\n' +
-  '  v_Kd = u_Kd; \n' +
+  '  v_Kd = u_MatlSet.diff; \n' +
   //'  v_Ks = u_Ks; \n' +
   '  v_eyePosWorld = u_eyePosWorld; \n' +
   
@@ -51,53 +65,69 @@ var VSHADER_SOURCE =
   
   
   'if(shadeMode == 2){\n' +
+  '  vec3 v_Normal = normalize(normal);\n' +
      // Calculate the light direction and make it 1.0 in length
-  '  vec3 lightDirection = normalize(u_LightPosition - vec3(vertexPosition));\n' +
-  '  vec3 hLightDirection = normalize(u_HeadlightPosition - vec3(vertexPosition));\n' +
-
+  '  vec3 lightDirection = normalize(u_worldLight.pos - vec3(vertexPosition));\n' +
+  '  vec3 hLightDirection = normalize(u_headLight.pos - vec3(vertexPosition));\n' +
+  '  vec3 eyeDirection = normalize(u_eyePosWorld.xyz - vec3(vertexPosition)); \n' +
      // The dot product of the light direction and the normal
-  '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
-  '  float nDotHl = max(dot(hLightDirection, normal),0.0);\n' +
+  '  float nDotL = max(dot(lightDirection, v_Normal), 0.0);\n' +
+  '  float nDotHl = max(dot(hLightDirection, v_Normal),0.0);\n' +
      // Calculate the color due to diffuse reflection
  
      // Calculate the color due to ambient reflection
 
      // Add the surface colors due to diffuse reflection and ambient reflection
-  '  vec3 eyeDirection = normalize(u_eyePosWorld.xyz - vec3(vertexPosition)); \n' +
+  
   '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
 
-    'float nDotH = max(dot(H, normal), 0.0); \n' +
-    'float e02 = nDotH*nDotH; \n' +
-	'float e04 = e02*e02; \n' +
-	'float e08 = e04*e04; \n' +
-	'float e16 = e08*e08; \n' +
-	'float e32 = e16*e16; \n' +
-	'float e64 = e32*e32; \n' +
+  '  float nDotH = max(dot(H, v_Normal), 0.0); \n' +
+  '  float e64 = pow(nDotH, float(u_MatlSet.shiny));\n' +
+	
+  '  vec3 H_2 = normalize(hLightDirection + eyeDirection); \n' +
+
+  '  float nDotH_2 = max(dot(H_2, v_Normal), 0.0); \n' +
+  '  float e64_2 = pow(nDotH_2, float(u_MatlSet.shiny));\n' +
 
   //Blinn-Phong Lighting
-  '  vec3 emissive = u_Ke;\n' +
-  '  vec3 ambient = u_AmbientLight * u_Ka;\n' +  
-  '  vec3 specular = u_Specular * u_Ks * e64;\n'  +
-  '  vec3 diffuse = u_LightColor * u_Kd * nDotL;\n' +
+  '  vec3 emissive = u_MatlSet.emit;\n' +
+  //worldLight
+  '  vec3 ambient  = u_worldLight.ambi * u_MatlSet.ambi;\n' +  
+  '  vec3 specular = u_worldLight.spec * u_MatlSet.spec * e64;\n'  +
+  '  vec3 diffuse  = u_worldLight.diff * v_Kd * nDotL;\n' +
+  //headLight
+  '  vec3 hambient  = u_headLight.ambi * u_MatlSet.ambi;\n' + 
+  '  vec3 hspec = u_headLight.spec * u_MatlSet.spec * e64_2;\n' +
+  '  vec3 hdiff = u_headLight.diff * v_Kd * nDotHl;\n' +
+  '  vec4 fragHead = vec4(emissive + hdiff + hambient + hspec,1.0);\n' +
+  '  vec4 fragworld = vec4(emissive + diffuse + ambient + specular, 1.0);\n' +     
 
-  '  vec3 hdiff = u_HeadlightDiffuse * u_Kd * nDotHl;\n' +
-  '  vec3 hspec = u_HeadlightSpecular * u_Ks * e32;\n' +
-
-
-  'vec4 fragHead = vec4(hdiff + hspec,1.0);\n' +
-
-  'vec4 fragworld = vec4(diffuse + ambient + specular + emissive, 1.0);\n' + 
+  
+  
   //Phong Lighting
   'if(lightMode == 2){\n' +
-        'vec3 reflectionDirection = reflect(-lightDirection, normal);\n' +
-        'float temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
-        'vec3 spec = u_Specular * u_Ks * temp;\n' +
-        'fragworld = vec4((ambient + spec + diffuse*nDotL + emissive), 1.0);\n' +
-
-        'reflectionDirection = reflect(-hLightDirection, normal);\n' +
-        'temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
-        'hspec = u_HeadlightSpecular * u_Ks * temp;\n' +
-        'fragHead = vec4((ambient + hspec + hdiff*nDotHl*e64), 1.0);\n' +
+    '      vec3 L = normalize(lightDirection); \n' +
+    '      vec3 C = dot(v_Normal, L)*v_Normal; \n' +
+    '      vec3 R = C + C - L; \n' +
+	'      nDotH = max(dot(eyeDirection, R), 0.0); \n' +
+	'      float e64 = pow(nDotH, float(u_MatlSet.shiny));\n' +
+	'      emissive = u_MatlSet.emit;\n' +
+	//worldLight
+    '      ambient  = u_worldLight.ambi * u_MatlSet.ambi;\n' +  
+    '      specular = u_worldLight.spec * u_MatlSet.spec * e64;\n'  +
+    '      diffuse  = u_worldLight.diff * v_Kd * nDotL;\n' +
+    '      fragworld = vec4(emissive +  diffuse + ambient + specular, 1.0);\n' +
+	
+	'      vec3 L_2 = normalize(hLightDirection); \n' +
+    '      vec3 C_2 = dot(v_Normal, L_2)*v_Normal; \n' +
+    '      vec3 R_2 = C_2 + C_2 - L_2; \n' +
+	'      nDotH_2 = max(dot(H_2, v_Normal), 0.0); \n' +
+	'      float e64_2 = pow(nDotH, float(u_MatlSet.shiny));\n' +
+    //headLight
+    '      hambient  = u_headLight.ambi * u_MatlSet.ambi;\n' + 
+    '      hspec = u_headLight.spec * u_MatlSet.spec * e64_2;\n' +
+    '      hdiff = u_headLight.diff * v_Kd * nDotHl;\n' +
+    '      fragHead = vec4(emissive + hdiff + hambient + hspec, 1.0);\n' +
 
    '}\n' +
 
@@ -121,33 +151,36 @@ var FSHADER_SOURCE =
 //  '#endif GL_ES\n' +
 
 
+	'struct LampT {\n' + // Describes one point-like Phong light source
+    '  vec3 pos;\n' + // (x,y,z,w); w==1.0 for local light at x,y,z position
+    '  vec3 ambi;\n' + // Ia ==  ambient light source strength (r,g,b)
+    '  vec3 diff;\n' + // Id ==  diffuse light source strength (r,g,b)
+    '  vec3 spec;\n' + // Is == specular light source strength (r,g,b)
+    '}; \n' +
+    'struct MatlT {\n' + // Describes one Phong material by its reflectances:
+    '  vec3 emit;\n' + // Ke: emissive -- surface 'glow' amount (r,g,b);
+    '  vec3 ambi;\n' + // Ka: ambient reflectance (r,g,b)
+    '  vec3 diff;\n' + // Kd: diffuse reflectance (r,g,b)
+    '  vec3 spec;\n' + // Ks: specular reflectance (r,g,b)
+    '  int shiny;\n' + // Kshiny: specular exponent (integer >= 1; typ. <200)
+    '};\n' +
+
   'varying vec4 v_Color;\n' +
   'varying vec3 normal;\n' +
   'varying vec4 vertexPosition;\n' +
   'varying vec3 v_Kd;\n' +
   'varying vec3 v_eyePosWorld;\n' +
   //'varying vec3 v_Ks;\n' +
-  'varying vec3 v_Ke;\n' +
+  //'varying vec3 v_Ke;\n' +
   //Uniforms
 
 
   //Material uniforms
-  'uniform vec3 u_Ks;\n' +  //specular
-  'uniform vec3 u_Ke;\n' +  //emissive
-  'uniform vec3 u_Ka;\n' +  //ambience
-  'uniform vec3 u_Kd; \n' + //diffuse
-  'uniform int u_KShiny;\n' + //shinyness
+  'uniform MatlT u_MatlSet;\n' + // Array of all materials.
 
-  //Light uniforms
-  'uniform vec3 u_LightColor;\n' +     // Diffuse Light color
-  'uniform vec3 u_LightPosition;\n' +  // Position of the light source
-  'uniform vec3 u_AmbientLight;\n' +   // Ambient light
-  'uniform vec3 u_Specular;\n' +
-
-  //Headlight uniforms
-  'uniform vec3 u_HeadlightDiffuse;\n' + 
-  'uniform vec3 u_HeadlightPosition;\n' +  
-  'uniform vec3 u_HeadlightSpecular;\n' +
+  //WorldLight and HeadLight Source uniforms
+  'uniform LampT u_worldLight;\n' + // Array of all light sources.
+  'uniform LampT u_headLight;\n' + // Array of all light sources.
 
   //Uniform to switch lighting modes
   'uniform int lightMode;\n' +
@@ -158,68 +191,81 @@ var FSHADER_SOURCE =
   
   
   'void main() {\n' +
-   'vec3 v_Normal = normalize(normal); \n' +
-       // Calculate the light direction and make it 1.0 in length
-   '  vec3 lightDirection = normalize(u_LightPosition - vec3(vertexPosition));\n' +
-   '  vec3 hLightDirection = normalize(u_HeadlightPosition - vec3(vertexPosition));\n' +
-
+  '  vec3 v_Normal = normalize(normal);\n' +
+     // Calculate the light direction and make it 1.0 in length
+  '  vec3 lightDirection = normalize(u_worldLight.pos - vec3(vertexPosition));\n' +
+  '  vec3 hLightDirection = normalize(u_headLight.pos - vec3(vertexPosition));\n' +
+  '  vec3 eyeDirection = normalize(v_eyePosWorld.xyz - vec3(vertexPosition)); \n' +
      // The dot product of the light direction and the normal
-   '  float nDotL = max(dot(lightDirection, v_Normal), 0.0);\n' +
-   '  float nDotHl = max(dot(hLightDirection, v_Normal),0.0);\n' +
+  '  float nDotL = max(dot(lightDirection, v_Normal), 0.0);\n' +
+  '  float nDotHl = max(dot(hLightDirection, v_Normal),0.0);\n' +
      // Calculate the color due to diffuse reflection
  
      // Calculate the color due to ambient reflection
 
      // Add the surface colors due to diffuse reflection and ambient reflection
-   '  vec3 eyeDirection = normalize(v_eyePosWorld.xyz - vec3(vertexPosition)); \n' +
-   '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
-    'float nDotH = max(dot(H, v_Normal), 0.0); \n' +
-	
-	
-    'float e02 = nDotH*nDotH; \n' +
-	'float e04 = e02*e02; \n' +
-	'float e08 = e04*e04; \n' +
-	'float e16 = e08*e08; \n' +
-	'float e32 = e16*e16; \n' +
-	'float e64 = e32*e32; \n' +
-
-  //Blinn-Phong Lighting
-  '  vec3 emissive = u_Ke;\n' +
-  '  vec3 ambient = u_AmbientLight * u_Ka;\n' +  
-  '  vec3 specular = u_Specular * u_Ks * e64;\n'  +
-  '  vec3 diffuse = u_LightColor * v_Kd * nDotL;\n' +
-
-  '  vec3 hdiff = u_HeadlightDiffuse * v_Kd * nDotHl;\n' +
-  '  vec3 hspec = u_HeadlightSpecular * u_Ks * e32;\n' +
-
-
-  'vec4 fragHead = vec4(hdiff + hspec,1.0);\n' +
-
-  'vec4 fragworld = vec4(diffuse + ambient + specular + emissive, 1.0);\n' + 
   
-  'vec4 frag;\n' +
+  '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
+
+  '  float nDotH = max(dot(H, v_Normal), 0.0); \n' +
+  '  float e64 = pow(nDotH, float(u_MatlSet.shiny));\n' +
+	
+  '  vec3 H_2 = normalize(hLightDirection + eyeDirection); \n' +
+
+  '  float nDotH_2 = max(dot(H_2, v_Normal), 0.0); \n' +
+  '  float e64_2 = pow(nDotH_2, float(u_MatlSet.shiny));\n' +
+  
+  '  vec4 frag;\n' +
+
+    //Blinn-Phong Lighting
+  '  vec3 emissive = u_MatlSet.emit;\n' +
+  //worldLight
+  '  vec3 ambient  = u_worldLight.ambi * u_MatlSet.ambi;\n' +  
+  '  vec3 specular = u_worldLight.spec * u_MatlSet.spec * e64;\n'  +
+  '  vec3 diffuse  = u_worldLight.diff * v_Kd * nDotL;\n' +
+  //headLight
+  '  vec3 hambient  = u_headLight.ambi * u_MatlSet.ambi;\n' + 
+  '  vec3 hspec = u_headLight.spec * u_MatlSet.spec * e64_2;\n' +
+  '  vec3 hdiff = u_headLight.diff * v_Kd * nDotHl;\n' +
+  '  vec4 fragHead = vec4(emissive + hdiff + hambient + hspec,1.0);\n' +
+  '  vec4 fragworld = vec4(emissive + diffuse + ambient + specular, 1.0);\n' +     
+
+  
+  
   //Phong Lighting
   'if(lightMode == 2){\n' +
-        'vec3 reflectionDirection = reflect(-lightDirection, v_Normal);\n' +
-        'float temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
-        'vec3 spec = u_Specular * u_Ks * temp;\n' +
-        'fragworld = vec4((ambient + spec + diffuse*nDotL + emissive), 1.0);\n' +
-
-        'reflectionDirection = reflect(-hLightDirection, v_Normal);\n' +
-        'temp = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 0.0);\n' +
-        'hspec = u_HeadlightSpecular * u_Ks * temp;\n' +
-        'fragHead = vec4((ambient + hspec + hdiff*nDotHl*e64), 1.0);\n' +
-
+    '      vec3 L = normalize(lightDirection); \n' +
+    '      vec3 C = dot(v_Normal, L)*v_Normal; \n' +
+    '      vec3 R = C + C - L; \n' +
+	'      nDotH = max(dot(eyeDirection, R), 0.0); \n' +
+	'      float e64 = pow(nDotH, float(u_MatlSet.shiny));\n' +
+	'      emissive = u_MatlSet.emit;\n' +
+	//worldLight
+    '      ambient  = u_worldLight.ambi * u_MatlSet.ambi;\n' +  
+    '      specular = u_worldLight.spec * u_MatlSet.spec * e64;\n'  +
+    '      diffuse  = u_worldLight.diff * v_Kd * nDotL;\n' +
+    '	   fragworld = vec4(emissive +  diffuse + ambient + specular, 1.0);\n' +
+	
+	'      vec3 L_2 = normalize(hLightDirection); \n' +
+    '      vec3 C_2 = dot(v_Normal, L_2)*v_Normal; \n' +
+    '      vec3 R_2 = C_2 + C_2 - L_2; \n' +
+	'      nDotH_2 = max(dot(H_2, v_Normal), 0.0); \n' +
+	'      float e64_2 = pow(nDotH, float(u_MatlSet.shiny));\n' +
+    //headLight
+    '      hambient  = u_headLight.ambi * u_MatlSet.ambi;\n' + 
+    '      hspec = u_headLight.spec * u_MatlSet.spec * e64_2;\n' +
+    '      hdiff = u_headLight.diff * v_Kd * nDotHl;\n' +
+    '      fragHead = vec4(emissive + hdiff + hambient + hspec, 1.0);\n' +
    '}\n' +
 
-  ' if (headlightOn==1 && worldlightOn==1){\n'+
+
+  ' if (headlightOn == 1 && worldlightOn == 1){\n'+
   '  frag = fragHead + fragworld;\n' +
   '}\n'+
  
-  ' else if (headlightOn ==1 && worldlightOn==0){\n'+
+  ' else if (headlightOn == 1 && worldlightOn == 0){\n'+
   ' frag = fragHead;}\n'+
   ' else{ frag = fragworld;}\n'+
-  
   '  gl_FragColor = frag;\n' +  
   
   ' if(shadeMode == 2){\n' +
@@ -234,9 +280,9 @@ var gl;				// main() sets this to the rendering context for WebGL. This object
 // nearly all our program's functions need it to make WebGL calls.  All those
 // functions would need 'gl' as an argument if we didn't make it a global var.
 var u_modelMatrix;     // **GPU location** of the 'u_modelMatrix' uniform
-var u_HeadlightPosition;
-var u_HeadlightDiffuse;
-var u_HeadlightSpecular;
+var u_NormalMatrix ;
+var modelMatrix = new Matrix4();
+var normalMatrix = new Matrix4(); 
 
 var ANGLE_STEP = 45.0;		// Rotation angle rate (degrees/second)
 var ANGLE_STEP_2 = 20.0;   // A different Rotation angle rate (degrees/second)
@@ -244,18 +290,23 @@ var floatsPerVertex = 7;	// # of Float32Array elements used for each vertex
 var g_theta =-27.5;
 var userHeight=0;
 var currentHeight=0;
+var eyePosWorld = new Float32Array(3);
 
-var u_NormalMatrix ;
-  var u_LightColor ;
-  var u_LightPosition;
-  var u_AmbientLight ;
-  var u_Specular;
-  
-  var u_Ke;
-var u_Ks;
-var u_Ka;
+
+var g_LambAtX = 5.0,
+    g_LambAtY = 5.0,
+    g_LambAtZ = 20.0;
+var lampAmbiR = 1.0,
+    lampAmbiG = 1.0,
+    lampAmbiB = 1.0;
+var lampDiffR = 1.0,
+    lampDiffG = 1.0,
+    lampDiffB = 1.0;
+var lampSpecR = 1.0,
+    lampSpecG = 1.0,
+    lampSpecB = 1.0;
 var u_Kd;
-var u_KShiny;
+
 
 var u_LightMode;
 var lMode = 1;
@@ -270,8 +321,7 @@ var maxsModes = 2;
 var g_angle01 = 0.0;        // animation angle 01 (degrees)
 var g_angle02 = 0.0;        // animation angle 02 (degrees)
 var g_last = Date.now();
-var modelMatrix = new Matrix4();
-var normalMatrix = new Matrix4(); 
+
 var height_steps = 0.1;
 
 var headlightOn = true;
@@ -292,11 +342,16 @@ var quatMatrix = new Matrix4();				// rotation matrix, made from latest qTot
 
 
 
-var g_EyeX = -13.20, g_EyeY = 6.25, g_EyeZ = 6;
+var g_EyeX = -25.20, g_EyeY = 10.25, g_EyeZ = 6.0;
 var g_lookX =0;
 var g_lookY =0;
-var g_lookZ = 5.65;
+var g_lookZ = 5.9;
 var foward_dis = 0;
+var worldLight_1 = new LightsT();
+var headLight = new LightsT();
+var materialType = 1;
+var g_ShaderID1;
+
 
 function main() {
 //==============================================================================
@@ -314,24 +369,24 @@ function main() {
     //canvas.onmouseup = 		function(ev){myMouseUp(   ev, gl, canvas)};
 
   // Retrieve <canvas> element
-  var myCanvas = document.getElementById('webgl');
-	canvas = myCanvas;	// make it global--for everyone to use.
+   canvas = document.getElementById('webgl');
+
   // Get the rendering context for WebGL
   document.onkeydown= function(ev){keydown(ev); };
-  var myGL = getWebGLContext(canvas);
-  if (!myGL) {
+  var gl = getWebGLContext(canvas);
+  if (!gl) {
     console.log('Failed to get the rendering context for WebGL');
     return;
   }
-	gl = myGL;	// make it global--for every function to use.
-
+	g_ShaderID1 = createProgram(gl, VSHADER_SOURCE, FSHADER_SOURCE); // for VBO1,
+    
   // Initialize shaders
-  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
-    console.log('Failed to intialize shaders.');
-    return;
-  }
+    if (!g_ShaderID1) {
+        console.log('Failed to intialize shaders.');
+        return;
+    }
   //
-
+	gl.useProgram(g_ShaderID1);
   var n = initVertexBuffer(gl);
   if (n < 0) {
     console.log('Failed to set the vertex information');
@@ -348,54 +403,19 @@ function main() {
 
   // Get handle to graphics system's storage location of u_modelMatrix
 
-  u_HeadlightDiffuse = gl.getUniformLocation(gl.program, 'u_HeadlightDiffuse');
-  u_HeadlightPosition = gl.getUniformLocation(gl.program, 'u_HeadlightPosition');
-  u_HeadlightSpecular = gl.getUniformLocation(gl.program, 'u_HeadlightSpecular');
-
-  hlOn = gl.getUniformLocation(gl.program, 'headlightOn');
-  wlOn = gl.getUniformLocation(gl.program, 'worldlightOn');
   
-  u_LightMode = gl.getUniformLocation(gl.program, 'lightMode');
-  u_ShadeMode = gl.getUniformLocation(gl.program, 'shadeMode');
+  hlOn = gl.getUniformLocation(g_ShaderID1, 'headlightOn');
+  wlOn = gl.getUniformLocation(g_ShaderID1, 'worldlightOn');
   
+  u_LightMode = gl.getUniformLocation(g_ShaderID1, 'lightMode');
+  u_ShadeMode = gl.getUniformLocation(g_ShaderID1, 'shadeMode');
+
   
-  u_modelMatrix = gl.getUniformLocation(gl.program, 'u_modelMatrix');
-  u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
-  u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
-  u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
-  u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
-  u_eyePosWorld = gl.getUniformLocation(gl.program, 'u_eyePosWorld');
-  u_Specular = gl.getUniformLocation(gl.program,'u_Specular');
+  u_modelMatrix = gl.getUniformLocation(g_ShaderID1, 'u_modelMatrix');
+  u_NormalMatrix = gl.getUniformLocation(g_ShaderID1, 'u_NormalMatrix');
+  u_eyePosWorld = gl.getUniformLocation(g_ShaderID1, 'u_eyePosWorld');
 
-
-  u_Ke = gl.getUniformLocation(gl.program, 'u_Ke');
-  u_Ks = gl.getUniformLocation(gl.program, 'u_Ks');
-  u_Ka = gl.getUniformLocation(gl.program, 'u_Ka');
-  u_Kd = gl.getUniformLocation(gl.program, 'u_Kd');
-  u_KShiny = gl.getUniformLocation(gl.program, 'u_KShiny');
-
-  gl.uniform1i(u_LightMode, lMode);
-  gl.uniform1i(u_ShadeMode, sMode);
-  gl.uniform3f(u_Ks, 1.0, 1.0, 1.0);
-  gl.uniform3f(u_Ka, 1.0, 0.3, 0.3);
-  gl.uniform3f(u_Kd, 0.3, 0.3, 0.3);
-  if (!u_modelMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition　|| !u_AmbientLight) { 
-    console.log('Failed to get the storage location');
-    return;
-  }
-
-  // Set the light color (white)
-  gl.uniform3f(u_LightColor, 0.8, 0.8, 0.8);
-  // Set the light direction (in the world coordinate)
-  gl.uniform3f(u_LightPosition, 0, 0, 0);
-  // Set the ambient light
-  gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
-
-  gl.uniform3f(u_Specular,1.0, 1.0, 1.0);
-
-  gl.uniform3f(u_HeadlightDiffuse, 1.0, 1.0, 1.0);
-    gl.uniform3f(u_HeadlightSpecular, 1.0, 1.0, 1.0);
-
+  gl.uniform3f(u_eyePosWorld, g_EyeX, g_EyeY, g_EyeZ);
 //-----------------
 
   tick();							// start (and continue) animation: draw current image
@@ -410,14 +430,13 @@ function tick(){
 	nuCanvas.width = innerWidth;
 	nuCanvas.height = innerHeight*3/4;
 	gl = getWebGLContext(nuCanvas);
-	gl.uniform3f(u_eyePosWorld, g_EyeX, g_EyeY, g_EyeZ);
-	gl.uniform1i(u_LightMode, lMode);
-	gl.uniform1i(u_ShadeMode, sMode);
-    //gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
 
+    //gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
+  	gl.uniform1i(u_LightMode, lMode);
+	gl.uniform1i(u_ShadeMode, sMode);
     animate();  // Update the rotation angle
     drawAll();   // Draw shapes
-	
+	onSubmit();
 	ANGLE_STEP.toFixed(5);
 		 //Also display our current mouse-dragging state:
 		
@@ -523,7 +542,7 @@ function initVertexBuffer(gl) {
   gl.bufferData(gl.ARRAY_BUFFER, colorShapes, gl.STATIC_DRAW);
 
   //Get graphics system's handle for our Vertex Shader's position-input variable:
-  var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+  var a_Position = gl.getAttribLocation(g_ShaderID1, 'a_Position');
   if (a_Position < 0) {
     console.log('Failed to get the storage location of a_Position');
     return -1;
@@ -545,7 +564,7 @@ function initVertexBuffer(gl) {
   									// Enable assignment of vertex buffer object's position data
 
   // Get graphics system's handle for our Vertex Shader's color-input variable;
-  var a_Normal = gl.getAttribLocation(gl.program, 'a_Normal');
+  var a_Normal = gl.getAttribLocation(g_ShaderID1, 'a_Normal');
   if(a_Normal < 0) {
     console.log('Failed to get the storage location of a_Normal');
     return -1;
@@ -1367,47 +1386,100 @@ function makeGroundGrid() {
 	}
 }
 
+
+function drawMySceneRepeat(gl,g_ShaderID, lamp, matl){
+	u_ModelMatrix = gl.getUniformLocation(g_ShaderID, 'u_ModelMatrix');
+    u_NormalMatrix = gl.getUniformLocation(g_ShaderID, 'u_NormalMatrix');
+	u_eyePosWorld = gl.getUniformLocation(g_ShaderID, 'u_eyePosWorld');
+
+    gl.uniform3f(u_eyePosWorld, g_EyeX, g_EyeY, g_EyeZ);
+  
+	lamp.u_pos = gl.getUniformLocation(g_ShaderID, 'u_worldLight.pos');
+    lamp.u_ambi = gl.getUniformLocation(g_ShaderID, 'u_worldLight.ambi');
+    lamp.u_diff = gl.getUniformLocation(g_ShaderID, 'u_worldLight.diff');
+    lamp.u_spec = gl.getUniformLocation(g_ShaderID, 'u_worldLight.spec');
+	
+	headLight.u_pos = gl.getUniformLocation(g_ShaderID, 'u_headLight.pos');
+    headLight.u_ambi = gl.getUniformLocation(g_ShaderID, 'u_headLight.ambi');
+    headLight.u_diff = gl.getUniformLocation(g_ShaderID, 'u_headLight.diff');
+    headLight.u_spec = gl.getUniformLocation(g_ShaderID, 'u_headLight.spec');
+	if (!lamp.u_pos || !lamp.u_ambi || !lamp.u_diff || !lamp.u_spec ||
+        !headLight.u_pos || !headLight.u_ambi || !headLight.u_diff || !headLight.u_spec) {
+        console.log('Failed to get GPUs lamp or headLight storage locations');
+        return;
+    }
+	    // ... for Phong material/reflectance:
+    matl.uLoc_Ke = gl.getUniformLocation(g_ShaderID, 'u_MatlSet.emit');
+    matl.uLoc_Ka = gl.getUniformLocation(g_ShaderID, 'u_MatlSet.ambi');
+    matl.uLoc_Kd = gl.getUniformLocation(g_ShaderID, 'u_MatlSet.diff');
+    matl.uLoc_Ks = gl.getUniformLocation(g_ShaderID, 'u_MatlSet.spec');
+    matl.uLoc_Kshiny = gl.getUniformLocation(g_ShaderID, 'u_MatlSet.shiny');
+    if (!matl.uLoc_Ke || !matl.uLoc_Ka || !matl.uLoc_Kd ||
+        !matl.uLoc_Ks || !matl.uLoc_Kshiny
+    ) {
+        console.log('Failed to get GPUs Reflectance storage locations');
+        return;
+    }
+
+	    lamp.I_pos.elements.set([g_LambAtX, g_LambAtY, g_LambAtZ]);
+    if (worldlightOn) {
+		gl.uniform1i(wlOn, 1);
+        lamp.I_ambi.elements.set([lampAmbiR, lampAmbiG, lampAmbiB]);
+        lamp.I_diff.elements.set([lampDiffR, lampDiffG, lampDiffB]);
+        lamp.I_spec.elements.set([lampSpecR, lampSpecG, lampSpecB]);
+        // console.log("lamp on");
+    } else {
+		gl.uniform1i(wlOn, 0);
+        lamp.I_ambi.elements.set([0.0, 0.0, 0.0]);
+        lamp.I_diff.elements.set([0.0, 0.0, 0.0]);
+        lamp.I_spec.elements.set([0.0, 0.0, 0.0]);
+        // console.log("lamp off");
+    }
+
+    // lamp.I_pos.elements.set([g_LambAtX, g_LambAtY, g_LambAtZ]);
+    headLight.I_pos.elements.set([g_EyeX, g_EyeY, g_EyeZ]);
+    if (headlightOn) {
+		gl.uniform1i(hlOn,1);
+        headLight.I_ambi.elements.set([1.0, 1.0, 1.0]);
+        headLight.I_diff.elements.set([1.0, 1.0, 1.0]);
+        headLight.I_spec.elements.set([1.0, 1.0, 1.0]);
+        // console.log("lamp on");
+    } else {
+		gl.uniform1i(hlOn,0);
+        headLight.I_ambi.elements.set([0.0, 0.0, 0.0]);
+        headLight.I_diff.elements.set([0.0, 0.0, 0.0]);
+        headLight.I_spec.elements.set([0.0, 0.0, 0.0]);
+        // console.log("lamp off");
+    }
+
+
+
+
+    gl.uniform3fv(lamp.u_pos, lamp.I_pos.elements.slice(0, 3));
+    gl.uniform3fv(lamp.u_ambi, lamp.I_ambi.elements); // ambient
+    gl.uniform3fv(lamp.u_diff, lamp.I_diff.elements); // diffuse
+    gl.uniform3fv(lamp.u_spec, lamp.I_spec.elements); // Specular
+    gl.uniform3fv(headLight.u_pos, headLight.I_pos.elements.slice(0, 3));
+    gl.uniform3fv(headLight.u_ambi, headLight.I_ambi.elements); // ambient
+    gl.uniform3fv(headLight.u_diff, headLight.I_diff.elements); // diffuse
+    gl.uniform3fv(headLight.u_spec, headLight.I_spec.elements); // Specular
+
+    //---------------For the Material object(s):
+    gl.uniform3fv(matl.uLoc_Ke, matl.K_emit.slice(0, 3)); // Ke emissive
+    gl.uniform3fv(matl.uLoc_Ka, matl.K_ambi.slice(0, 3)); // Ka ambient
+    gl.uniform3fv(matl.uLoc_Kd, matl.K_diff.slice(0, 3)); // Kd	diffuse
+    gl.uniform3fv(matl.uLoc_Ks, matl.K_spec.slice(0, 3)); // Ks specular
+    gl.uniform1i(matl.uLoc_Kshiny, parseInt(matl.K_shiny, 10)); // Kshiny
+}
+
+
 function drawAll(){
 //==============================================================================
   // Clear <canvas>  colors AND the depth buffer
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-
-  if (headlightOn) {
-    gl.uniform3f(u_HeadlightPosition, g_EyeX, g_EyeY, g_EyeZ);
-    gl.uniform1i(hlOn, 1);
-  }
-
-  else{
-    gl.uniform1i(hlOn,0);
-  }
-
-  if (worldlightOn){
-    gl.uniform1i(wlOn, 1);
-    gl.uniform3f(u_LightColor, 0.8, 0.8, 0.8);
-  // Set the light direction (in the world coordinate)
-  gl.uniform3f(u_LightPosition, 5.0, 8.0, 7.0);
-  // Set the ambient light
-  gl.uniform3f(u_AmbientLight, 1.0, 1.0, 1.0);
-
-  gl.uniform3f(u_Specular,1.0, 1.0, 1.0);
-
-
-  }
-
-  else{
-    gl.uniform1i(wlOn,0);
-
-    gl.uniform3f(u_LightColor, 0, 0, 0);
-  // Set the light direction (in the world coordinate)
-  gl.uniform3f(u_LightPosition, 0, 0, 0);
-  // Set the ambient light
-  gl.uniform3f(u_AmbientLight, 0, 0, 0);
-
-  gl.uniform3f(u_Specular,0, 0, 0);
-
-
-  }
+  gl.useProgram(g_ShaderID1);
+  var matl_1 = new Material(1);
+  drawMySceneRepeat(gl,g_ShaderID1, worldLight_1, matl_1);
 
 
   gl.viewport(0,											 				// Viewport lower-left corner
@@ -1432,7 +1504,7 @@ function drawAll(){
   var g_atY=g_EyeY+Math.sin(g_theta * Math.PI / 180);
   g_lookX = g_atX;
   g_lookY =g_atY;
-
+  console.log(g_theta);
 
 
 
@@ -1454,6 +1526,8 @@ function drawAll(){
 
 
   //===================Draw Sixth OBJECT(Rectangle):
+     var matl_3 = new Material(9);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
     //draw tower1
     modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
     modelMatrix.perspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
@@ -1573,7 +1647,8 @@ function drawAll(){
 
   //===================Draw Seventh OBJECT(ring):
 
-
+    var matl_2 = new Material(6);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_2);
     modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
     modelMatrix.perspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
                            vpAspect,   // Image Aspect Ratio: camera lens width/height
@@ -1621,6 +1696,8 @@ function drawAll(){
 
 
 //===================Draw Eighth OBJECT(Big Sphere):
+    var matl_1 = new Material(materialType);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_1);
 	modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
     modelMatrix.perspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
                            vpAspect,   // Image Aspect Ratio: camera lens width/height
@@ -1634,7 +1711,7 @@ function drawAll(){
     modelMatrix.translate(0,0,3);
     modelMatrix.rotate(-g_angle01,0,0,1);
     
-	modelMatrix.scale(3, 3, 3);
+	modelMatrix.scale(3,3,3);
 	drawSphere();
   
   
@@ -1655,11 +1732,7 @@ function drawDiamond(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
-      gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
-    gl.uniform3f(u_Ka, 0.1, 0.1, 0.1);
-    gl.uniform3f(u_Kd, 0.6, 0.0, 0.0);
-    gl.uniform3f(u_Ks, 0.6, 0.6, 0.6);
-    gl.uniform1i(u_KShiny, 100);
+
     gl.drawArrays(gl.TRIANGLES,				// use this drawing primitive, and
   							diamondStart/floatsPerVertex, // start at this vertex number, and
   							DiamondVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -1674,10 +1747,7 @@ function drawCylinder(){
   normalMatrix.transpose();
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
-      gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
-    gl.uniform3f(u_Ka, 0.05, 0.05, 0.05);
-    gl.uniform3f(u_Kd, 0.0, 0.2, 0.6);
-    gl.uniform3f(u_Ks,0.1,     0.2,    0.3);
+
     gl.drawArrays(gl.TRIANGLE_STRIP,				// use this drawing primitive, and
   							cylStart/floatsPerVertex, // start at this vertex number, and
   							cylVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -1691,11 +1761,7 @@ function drawTentacle(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
-  gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
-    gl.uniform3f(u_Ka, 1, 1, 1);
-    gl.uniform3f(u_Kd, 1, 1, 1);
-    gl.uniform3f(u_Ks, 1, 1, 1);
-    gl.uniform1i(u_KShiny, 100);
+
     gl.drawArrays(gl.TRIANGLES,				// use this drawing primitive, and
   							polyStart/floatsPerVertex, // start at this vertex number, and
   							Polys.length/floatsPerVertex);	// draw this many vertices.
@@ -1709,10 +1775,7 @@ function drawCylinder2(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   // Draw just the the cylinder's vertices:
-  gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
-    gl.uniform3f(u_Ka, 0.105882, 0.058824, 0.113725);
-    gl.uniform3f(u_Kd, 0.427451, 0.470588, 0.541176);
-    gl.uniform3f(u_Ks, 0.333333, 0.333333, 0.521569);
+
     gl.drawArrays(gl.TRIANGLE_STRIP,				// use this drawing primitive, and
   							cyl2Start/floatsPerVertex, // start at this vertex number, and
   							cylVerts2.length/floatsPerVertex);	// draw this many vertices.
@@ -1727,11 +1790,7 @@ function drawGrid(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
      // Draw just the ground-plane's vertices
-	 gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
-    gl.uniform3f(u_Ka, 0.0215, 0.1745, 0.0215);
-    gl.uniform3f(u_Kd, 0.07568, 0.61424, 0.07568);
-    gl.uniform3f(u_Ks, 0.633, 0.727811, 0.633);
-    gl.uniform1i(u_KShiny, 76.8);
+
      gl.drawArrays(gl.LINES, 								// use this drawing primitive, and
   						  gndStart/floatsPerVertex,	// start at this vertex number, and
   						  gndVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -1747,11 +1806,7 @@ function drawTorus(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   		// Draw just the torus's vertices
-		    gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
-    gl.uniform3f(u_Ka, 0.05375, 0.05, 0.06625);
-    gl.uniform3f(u_Kd, 0.18275, 0.17, 0.22525);
-    gl.uniform3f(u_Ks, 0.332741, 0.328634, 0.346435);
-    gl.uniform1i(u_KShiny, 38.4);
+
     gl.drawArrays(gl.TRIANGLE_STRIP, 				// use this drawing primitive, and
   						  torStart/floatsPerVertex,	// start at this vertex number, and
   						  torVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -1766,11 +1821,7 @@ function drawSphere(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   		// Draw just the sphere's vertices
-		    gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
-    gl.uniform3f(u_Ka, 0.0215, 0.1745, 0.0215);
-    gl.uniform3f(u_Kd, 0.07568, 0.61424, 0.07568);
-    gl.uniform3f(u_Ks, 0.633, 0.727811, 0.633);
-    gl.uniform1i(u_KShiny, 76.8);
+
    gl.drawArrays(gl.TRIANGLE_STRIP,				// use this drawing primitive, and
   							sphStart/floatsPerVertex,	// start at this vertex number, and
   							sphVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -1798,11 +1849,7 @@ function drawRectangle(){
   // Pass the transformation matrix for normals to u_NormalMatrix
   gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
   		// Draw just the sphere's vertices
-		    gl.uniform3f(u_Ke, 0.0, 0.0, 0.0);
-    gl.uniform3f(u_Ka, 0.25, 0.25, 0.25);
-    gl.uniform3f(u_Kd, 0.4, 0.4, 0.4);
-    gl.uniform3f(u_Ks, 0.774597, 0.774597, 0.774597);
-    gl.uniform1i(u_KShiny, 76.8);
+
    gl.drawArrays(gl.TRIANGLES,				// use this drawing primitive, and
   							recStart/floatsPerVertex,	// start at this vertex number, and
   							RecVerts.length/floatsPerVertex);	// draw this many vertices.
@@ -2146,6 +2193,21 @@ function myKeyDown(kev) {
 	}
 }
 
+function onSubmit() {
+    //console.log("before change: ", lampAmbiR, lampAmbiG, lampAmbiB, lampDiffR,
+        //lampDiffG, lampDiffB, lampSpecR, lampSpecG, lampSpecB);
+    lampAmbiR = Number(document.getElementById("lampAmbiR").value);
+    lampAmbiG = Number(document.getElementById("lampAmbiG").value);
+    lampAmbiB = Number(document.getElementById("lampAmbiB").value);
+    lampDiffR = Number(document.getElementById("lampDiffR").value);
+    lampDiffG = Number(document.getElementById("lampDiffG").value);
+    lampDiffB = Number(document.getElementById("lampDiffB").value);
+    lampSpecR = Number(document.getElementById("lampSpecR").value);
+    lampSpecG = Number(document.getElementById("lampSpecG").value);
+    lampSpecB = Number(document.getElementById("lampSpecB").value);
+    //console.log("before change: ", lampAmbiR, lampAmbiG, lampAmbiB, lampDiffR,
+        //lampDiffG, lampDiffB, lampSpecR, lampSpecG, lampSpecB);
+}
 
 function keydown(ev) {
 //------------------------------------------------------
@@ -2180,6 +2242,10 @@ function keydown(ev) {
 	if (ev.keyCode == 76){
 		switchsModes();
 	}
+    if (ev.keyCode == 75){
+        materialType = (materialType + 1) % 20;
+       // console.log("change the material");
+    } 
 
 	if(ev.keyCode == 38) { // The up arrow key was pressed
 //      g_EyeX += 0.01;
@@ -2196,10 +2262,12 @@ function keydown(ev) {
     if(ev.keyCode == 39) { // The right arrow key was pressed
 //      g_EyeX += 0.01;
 				g_theta -= 5;		// INCREASED for perspective camera)
+				console.log(g_theta);
     } else
     if (ev.keyCode == 37) { // The left arrow key was pressed
 //      g_EyeX -= 0.01;
 				g_theta += 5;		// INCREASED for perspective camera)
+				console.log(g_theta);
     }
 
     else if(ev.keyCode == 87){ // w go forward
@@ -2266,7 +2334,7 @@ function switchsModes() {
     }
     else
         sMode++;
-	console.log(sMode);
+	//console.log(sMode);
 }
 
 
@@ -2274,5 +2342,5 @@ function myKeyUp(kev) {
 //===============================================================================
 // Called when user releases ANY key on the keyboard; captures scancodes well
 
-	console.log('myKeyUp()--keyCode='+kev.keyCode+' released.');
+	//console.log('myKeyUp()--keyCode='+kev.keyCode+' released.');
 }
