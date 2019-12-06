@@ -31,9 +31,9 @@
         <p>
         <div id="stretcher">
             <p>light source: lampAmbiR, lampAmbiG, lampAmbiB, lampDiffR, lampDiffG, lampDiffB, lampSpecR, lampSpecG, lampSpecB</p>
-            <p style="display:inline">lampAmbiR:<input id="lampAmbiR" size="1" value="1.0" /> lampAmbiG:<input id="lampAmbiG" size="1" value="1.0" /> lampAmbiB:<input id="lampAmbiB" size="1" value="1.0" /> lampDiffR:
-                <input id="lampDiffR" size="1" value="1.0" /> lampDiffG:<input id="lampDiffG" size="1" value="1.0" /> lampDiffB:<input id="lampDiffB" size="1" value="1.0" /> lampSpecR:
-                <input id="lampSpecR" size="1" value="1.0" /> lampSpecG:<input id="lampSpecG" size="1" value="1.0" /> lampSpecB:<input id="lampSpecB" size="1" value="1.0" /> </p>
+            <p style="display:inline">lampAmbiR:<input id="lampAmbiR" size="5" value="1.0" /> lampAmbiG:<input id="lampAmbiG" size="5" value="1.0" /> lampAmbiB:<input id="lampAmbiB" size="5" value="1.0" /> lampDiffR:
+                <input id="lampDiffR" size="5" value="1.0" /> lampDiffG:<input id="lampDiffG" size="5" value="1.0" /> lampDiffB:<input id="lampDiffB" size="5" value="1.0" /> lampSpecR:
+                <input id="lampSpecR" size="5" value="1.0" /> lampSpecG:<input id="lampSpecG" size="5" value="1.0" /> lampSpecB:<input id="lampSpecB" size="5" value="1.0" /> </p>
             &nbsp;
             <button type="button" id="submit" onclick="onSubmit()">Submit</button>
         </div>
@@ -55,8 +55,7 @@
 <div id= current_rpm></div>
 	<!-- Next, make a simple block of text 
 	-->
-	Please provide the RPM for helicopter (>= 800 to lift up)
-	<!-- Next, make an HTML 'input' box element, a text-box 10 chars wide where users
+	Please provide the RPM	<!-- Next, make an HTML 'input' box element, a text-box 10 chars wide where users
 		can type in text.  Give it an ID name so that our JavaScript program
 		(e.g. ControlMulti.js, loaded near the end of this file) can access this
 		HTML element by name in the 'tick' function.
@@ -82,7 +81,6 @@
 			Spin <<, runStop, and Spin >>.  
 		When users click the button, HTML calls JavaScript functions
 			"spinDown()", "runStop()" and "spinUp()"   -->
-      <button type="button" onclick="resetHeight()">Reset Helicopter</button>
       <button type="button" onclick="spinDown()">Spin << </button>
 	  <button type="button" onclick="runStop()">Run/Stop</button>
       <button type="button" onclick="spinUp()">Spin >> </button>
