@@ -304,9 +304,7 @@ function main() {
    window.addEventListener("keyup", myKeyUp, false);
    window.addEventListener("mousedown", myMouseDown);
    window.addEventListener("mousemove", myMouseMove);
-   window.addEventListener("mouseup", myMouseUp);
 	window.addEventListener("click", myMouseClick);
-	window.addEventListener("dblclick", myMouseDblClick);
 	//canvas.onmousedown	=	function(ev){myMouseDown( ev, gl, canvas) }; 
   					// when user's mouse button goes down, call mouseDown() function
     //canvas.onmousemove = 	function(ev){myMouseMove( ev, gl, canvas) };
@@ -1423,7 +1421,7 @@ function drawAll(){
   // Clear <canvas>  colors AND the depth buffer
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.useProgram(g_ShaderID1);
-  var matl_1 = new Material(1);
+  var matl_1 = new Material(19);
   drawMySceneRepeat(gl,g_ShaderID1, worldLight_1, matl_1);
 
 
@@ -1468,7 +1466,7 @@ function drawAll(){
 
 
   //===================Draw Sixth OBJECT(Rectangle):
-     var matl_3 = new Material(9);
+     var matl_3 = new Material(2);
     drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
     //draw tower1
     modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
@@ -1589,7 +1587,7 @@ function drawAll(){
 
   //===================Draw Seventh OBJECT(ring):
 
-    var matl_2 = new Material(6);
+    var matl_2 = new Material(22);
     drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_2);
     modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
     modelMatrix.perspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
@@ -1624,6 +1622,8 @@ function drawAll(){
     modelMatrix.rotate(-g_angle01*3,0,1,0);
 	drawDiamond();
 	
+	var matl_2 = new Material(6);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_2);
 
 	modelMatrix = popMatrix();
 	pushMatrix(modelMatrix);
@@ -1901,12 +1901,7 @@ function runStop() {
 	y.toFixed(5);
 };
 
-  function resetHeight(){
 
-    ANGLE_STEP = 45;
-    currentHeight = 0;
-
-  }
 
 
   function myMouseMove(ev) {
@@ -2040,18 +2035,7 @@ function dragQuat(xdrag, ydrag) {
 	qTot.length().toFixed(res);
 };
 
-function myMouseDblClick(ev) {
-//=============================================================================
-// Called when user completes a mouse-button double-click event
-//
-//    WHICH button? try:  console.log('ev.button='+ev.button);
-// 		ev.clientX, ev.clientY == mouse pointer location, but measured in webpage
-//		pixels: left-handed coords; UPPER left origin; Y increases DOWNWARDS (!)
-//    See myMouseUp(), myMouseDown() for conversions to  CVV coordinates.
 
-  // STUB
-
-}
 
 function myKeyDown(kev) {
 //===============================================================================
@@ -2073,17 +2057,7 @@ function myKeyDown(kev) {
 // and report EVERYTHING on webpage:
 	
 	switch(kev.code) {
-		case "KeyP":
-			
-
-			if(g_isRun==true) {
-			  g_isRun = false;    // STOP animation
-			  }
-			else {
-			  g_isRun = true;     // RESTART animation
-			  tick();
-			  }
-			break;
+		
 		//------------------WASD navigation-----------------
 		case "KeyA":
 			console.log("a/A key: Strafe LEFT!\n");
@@ -2136,8 +2110,7 @@ function myKeyDown(kev) {
 }
 
 function onSubmit() {
-    //console.log("before change: ", lampAmbiR, lampAmbiG, lampAmbiB, lampDiffR,
-        //lampDiffG, lampDiffB, lampSpecR, lampSpecG, lampSpecB);
+
     lampAmbiR = Number(document.getElementById("lampAmbiR").value);
     lampAmbiG = Number(document.getElementById("lampAmbiG").value);
     lampAmbiB = Number(document.getElementById("lampAmbiB").value);
@@ -2147,8 +2120,7 @@ function onSubmit() {
     lampSpecR = Number(document.getElementById("lampSpecR").value);
     lampSpecG = Number(document.getElementById("lampSpecG").value);
     lampSpecB = Number(document.getElementById("lampSpecB").value);
-    //console.log("before change: ", lampAmbiR, lampAmbiG, lampAmbiB, lampDiffR,
-        //lampDiffG, lampDiffB, lampSpecR, lampSpecG, lampSpecB);
+
 }
 
 function keydown(ev) {
