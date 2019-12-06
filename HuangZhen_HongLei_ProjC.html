@@ -28,7 +28,16 @@
 		<p>If the RPM >= 800, the holicopter will take off, and once RPM <= 800, it will start returning back to ground</p>
 		<p>Click "Reset Helicopter" to reset the position of the helicopter</p></p>
 		<p>Drag the diamond ring with the mouse, and it will spin (click and drag up and down for it to spin around x axis, left and right for y axis) </p>
-
+        <p>
+        <div id="stretcher">
+            <p>light source: lampAmbiR, lampAmbiG, lampAmbiB, lampDiffR, lampDiffG, lampDiffB, lampSpecR, lampSpecG, lampSpecB</p>
+            <p style="display:inline">lampAmbiR:<input id="lampAmbiR" size="1" value="1.0" /> lampAmbiG:<input id="lampAmbiG" size="1" value="1.0" /> lampAmbiB:<input id="lampAmbiB" size="1" value="1.0" /> lampDiffR:
+                <input id="lampDiffR" size="1" value="1.0" /> lampDiffG:<input id="lampDiffG" size="1" value="1.0" /> lampDiffB:<input id="lampDiffB" size="1" value="1.0" /> lampSpecR:
+                <input id="lampSpecR" size="1" value="1.0" /> lampSpecG:<input id="lampSpecG" size="1" value="1.0" /> lampSpecB:<input id="lampSpecB" size="1" value="1.0" /> </p>
+            &nbsp;
+            <button type="button" id="submit" onclick="onSubmit()">Submit</button>
+        </div>
+        </p>
 
 
 
@@ -89,6 +98,8 @@
 	<script src="lib/cuon-matrix-quat03.js"></script>
 	<!--	Finally, load in our own JavaScript program file.
 	-->
+	<script src="lights-JT.js"></script>
+    <script src="materials_Ayerdi.js"></script>
     <script src="HuangZhen_HongLei_ProjC.js"></script>
   </body>
 </html>
