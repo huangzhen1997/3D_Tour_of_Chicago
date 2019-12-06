@@ -51,20 +51,26 @@ var VSHADER_SOURCE =
   //'varying vec2 vworldlightOn;\n' +
 
   ' void main() {\n' +
-  
+  'if(shadeMode == 1){\n' +
   '  gl_Position = u_modelMatrix * a_Position;\n' +
      // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
   '  normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
      // Calculate world coordinate of vertex
   '  vertexPosition = u_modelMatrix * a_Position;\n' +
   '  v_Kd = u_MatlSet.diff; \n' +
-  //'  v_Ks = u_Ks; \n' +
   '  v_eyePosWorld = u_eyePosWorld; \n' +
-  
-  //'  v_worldlightOn = worldlightOn; \n' +
-  
+  '}\n' +
   
   'if(shadeMode == 2){\n' +
+  '  gl_Position = u_modelMatrix * a_Position;\n' +
+     // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
+  '  normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
+     // Calculate world coordinate of vertex
+  '  vertexPosition = u_modelMatrix * a_Position;\n' +
+  '  v_Kd = u_MatlSet.diff; \n' +
+  '  v_eyePosWorld = u_eyePosWorld; \n' +
+  
+  
   '  vec3 v_Normal = normalize(normal);\n' +
      // Calculate the light direction and make it 1.0 in length
   '  vec3 lightDirection = normalize(u_worldLight.pos - vec3(vertexPosition));\n' +
@@ -73,72 +79,41 @@ var VSHADER_SOURCE =
      // The dot product of the light direction and the normal
   '  float nDotL = max(dot(lightDirection, v_Normal), 0.0);\n' +
   '  float nDotHl = max(dot(hLightDirection, v_Normal),0.0);\n' +
-     // Calculate the color due to diffuse reflection
- 
-     // Calculate the color due to ambient reflection
-
-     // Add the surface colors due to diffuse reflection and ambient reflection
+  '  float nDotH = 0.0; \n' +
+  '  float nDotH_2 = 0.0; \n' +
   
-  '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
-
-  '  float nDotH = max(dot(H, v_Normal), 0.0); \n' +
-  '  float e64 = pow(nDotH, float(u_MatlSet.shiny));\n' +
-	
-  '  vec3 H_2 = normalize(hLightDirection + eyeDirection); \n' +
-
-  '  float nDotH_2 = max(dot(H_2, v_Normal), 0.0); \n' +
-  '  float e64_2 = pow(nDotH_2, float(u_MatlSet.shiny));\n' +
-
-  //Blinn-Phong Lighting
-  '  vec3 emissive = u_MatlSet.emit;\n' +
-  //worldLight
-  '  vec3 ambient  = u_worldLight.ambi * u_MatlSet.ambi;\n' +  
-  '  vec3 specular = u_worldLight.spec * u_MatlSet.spec * e64;\n'  +
-  '  vec3 diffuse  = u_worldLight.diff * v_Kd * nDotL;\n' +
-  //headLight
-  '  vec3 hambient  = u_headLight.ambi * u_MatlSet.ambi;\n' + 
-  '  vec3 hspec = u_headLight.spec * u_MatlSet.spec * e64_2;\n' +
-  '  vec3 hdiff = u_headLight.diff * v_Kd * nDotHl;\n' +
-  '  vec4 fragHead = vec4(emissive + hdiff + hambient + hspec,1.0);\n' +
-  '  vec4 fragworld = vec4(emissive + diffuse + ambient + specular, 1.0);\n' +     
-
+  
+  '    if(lightMode == 1){\n' +
+    //Blinn-Phong Lighting
+    '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
+    '  nDotH = max(dot(H, normal), 0.0); \n' +
+    '  vec3 H_2 = normalize(hLightDirection + eyeDirection); \n' +
+    '  nDotH_2 = max(dot(H_2, normal), 0.0); \n' + 
+  '    }\n' +
   
   
   //Phong Lighting
-  'if(lightMode == 2){\n' +
+  'if(lightMode == 2){\n' +	
+  //worldLight
     '      vec3 L = normalize(lightDirection); \n' +
     '      vec3 C = dot(v_Normal, L)*v_Normal; \n' +
     '      vec3 R = C + C - L; \n' +
 	'      nDotH = max(dot(eyeDirection, R), 0.0); \n' +
-	'      float e64 = pow(nDotH, float(u_MatlSet.shiny));\n' +
-	'      emissive = u_MatlSet.emit;\n' +
-	//worldLight
-    '      ambient  = u_worldLight.ambi * u_MatlSet.ambi;\n' +  
-    '      specular = u_worldLight.spec * u_MatlSet.spec * e64;\n'  +
-    '      diffuse  = u_worldLight.diff * v_Kd * nDotL;\n' +
-    '      fragworld = vec4(emissive +  diffuse + ambient + specular, 1.0);\n' +
-	
+    //headLight	
 	'      vec3 L_2 = normalize(hLightDirection); \n' +
     '      vec3 C_2 = dot(v_Normal, L_2)*v_Normal; \n' +
     '      vec3 R_2 = C_2 + C_2 - L_2; \n' +
-	'      nDotH_2 = max(dot(H_2, v_Normal), 0.0); \n' +
-	'      float e64_2 = pow(nDotH, float(u_MatlSet.shiny));\n' +
-    //headLight
-    '      hambient  = u_headLight.ambi * u_MatlSet.ambi;\n' + 
-    '      hspec = u_headLight.spec * u_MatlSet.spec * e64_2;\n' +
-    '      hdiff = u_headLight.diff * v_Kd * nDotHl;\n' +
-    '      fragHead = vec4(emissive + hdiff + hambient + hspec, 1.0);\n' +
+	'      nDotH_2 = max(dot(eyeDirection, R_2), 0.0); \n' +
+   '}\n' +  
+   
+   '  float e64 = pow(nDotH, float(u_MatlSet.shiny));\n' +
+   '  float e64_2 = pow(nDotH_2, float(u_MatlSet.shiny));\n' +
+    '  vec3 emissive = 	u_MatlSet.emit;\n' +
+    '  vec3 ambient = u_worldLight.ambi * u_MatlSet.ambi + u_headLight.ambi * u_MatlSet.ambi ;\n' +
+    '  vec3 diffuse = u_worldLight.diff * v_Kd * nDotL + u_headLight.diff * v_Kd * nDotHl;\n' +
+    '  vec3 speculr = u_worldLight.spec * u_MatlSet.spec * e64 + u_headLight.spec * u_MatlSet.spec * e64_2;\n' +
 
-   '}\n' +
-
-
-  ' if (headlightOn==1 && worldlightOn==1){\n'+
-  '  v_Color = fragHead + fragworld;\n' +
-  '}\n'+
- 
-  ' else if (headlightOn ==1 && worldlightOn==0){\n'+
-  ' v_Color = fragHead;}\n'+
-  ' else{ v_Color = fragworld;}\n'+
+    '  v_Color = vec4(emissive + ambient + diffuse + speculr , 1.0);\n' +
 
   '}\n' +
   '}\n';
@@ -191,6 +166,11 @@ var FSHADER_SOURCE =
   
   
   'void main() {\n' +
+  ' if(shadeMode == 2){\n' +
+  '  gl_FragColor = v_Color;\n' +
+  '}\n'+
+  
+  ' if(shadeMode == 1){\n' +
   '  vec3 v_Normal = normalize(normal);\n' +
      // Calculate the light direction and make it 1.0 in length
   '  vec3 lightDirection = normalize(u_worldLight.pos - vec3(vertexPosition));\n' +
@@ -199,78 +179,43 @@ var FSHADER_SOURCE =
      // The dot product of the light direction and the normal
   '  float nDotL = max(dot(lightDirection, v_Normal), 0.0);\n' +
   '  float nDotHl = max(dot(hLightDirection, v_Normal),0.0);\n' +
-     // Calculate the color due to diffuse reflection
- 
-     // Calculate the color due to ambient reflection
-
-     // Add the surface colors due to diffuse reflection and ambient reflection
+  '  float nDotH = 0.0; \n' +
+  '  float nDotH_2 = 0.0; \n' +
   
-  '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
-
-  '  float nDotH = max(dot(H, v_Normal), 0.0); \n' +
-  '  float e64 = pow(nDotH, float(u_MatlSet.shiny));\n' +
-	
-  '  vec3 H_2 = normalize(hLightDirection + eyeDirection); \n' +
-
-  '  float nDotH_2 = max(dot(H_2, v_Normal), 0.0); \n' +
-  '  float e64_2 = pow(nDotH_2, float(u_MatlSet.shiny));\n' +
   
-  '  vec4 frag;\n' +
-
+  '    if(lightMode == 1){\n' +
     //Blinn-Phong Lighting
-  '  vec3 emissive = u_MatlSet.emit;\n' +
-  //worldLight
-  '  vec3 ambient  = u_worldLight.ambi * u_MatlSet.ambi;\n' +  
-  '  vec3 specular = u_worldLight.spec * u_MatlSet.spec * e64;\n'  +
-  '  vec3 diffuse  = u_worldLight.diff * v_Kd * nDotL;\n' +
-  //headLight
-  '  vec3 hambient  = u_headLight.ambi * u_MatlSet.ambi;\n' + 
-  '  vec3 hspec = u_headLight.spec * u_MatlSet.spec * e64_2;\n' +
-  '  vec3 hdiff = u_headLight.diff * v_Kd * nDotHl;\n' +
-  '  vec4 fragHead = vec4(emissive + hdiff + hambient + hspec,1.0);\n' +
-  '  vec4 fragworld = vec4(emissive + diffuse + ambient + specular, 1.0);\n' +     
-
+    '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
+    '  nDotH = max(dot(H, normal), 0.0); \n' +
+    '  vec3 H_2 = normalize(hLightDirection + eyeDirection); \n' +
+    '  nDotH_2 = max(dot(H_2, normal), 0.0); \n' + 
+  '    }\n' +
   
   
   //Phong Lighting
-  'if(lightMode == 2){\n' +
+  'if(lightMode == 2){\n' +	
+  //worldLight
     '      vec3 L = normalize(lightDirection); \n' +
     '      vec3 C = dot(v_Normal, L)*v_Normal; \n' +
     '      vec3 R = C + C - L; \n' +
 	'      nDotH = max(dot(eyeDirection, R), 0.0); \n' +
-	'      float e64 = pow(nDotH, float(u_MatlSet.shiny));\n' +
-	'      emissive = u_MatlSet.emit;\n' +
-	//worldLight
-    '      ambient  = u_worldLight.ambi * u_MatlSet.ambi;\n' +  
-    '      specular = u_worldLight.spec * u_MatlSet.spec * e64;\n'  +
-    '      diffuse  = u_worldLight.diff * v_Kd * nDotL;\n' +
-    '	   fragworld = vec4(emissive +  diffuse + ambient + specular, 1.0);\n' +
-	
+    //headLight	
 	'      vec3 L_2 = normalize(hLightDirection); \n' +
     '      vec3 C_2 = dot(v_Normal, L_2)*v_Normal; \n' +
     '      vec3 R_2 = C_2 + C_2 - L_2; \n' +
-	'      nDotH_2 = max(dot(H_2, v_Normal), 0.0); \n' +
-	'      float e64_2 = pow(nDotH, float(u_MatlSet.shiny));\n' +
-    //headLight
-    '      hambient  = u_headLight.ambi * u_MatlSet.ambi;\n' + 
-    '      hspec = u_headLight.spec * u_MatlSet.spec * e64_2;\n' +
-    '      hdiff = u_headLight.diff * v_Kd * nDotHl;\n' +
-    '      fragHead = vec4(emissive + hdiff + hambient + hspec, 1.0);\n' +
-   '}\n' +
+	'      nDotH_2 = max(dot(eyeDirection, R_2), 0.0); \n' +
+   '}\n' +  
+   
+   '  float e64 = pow(nDotH, float(u_MatlSet.shiny));\n' +
+   '  float e64_2 = pow(nDotH_2, float(u_MatlSet.shiny));\n' +
+    '  vec3 emissive = 	u_MatlSet.emit;\n' +
+    '  vec3 ambient = u_worldLight.ambi * u_MatlSet.ambi + u_headLight.ambi * u_MatlSet.ambi ;\n' +
+    '  vec3 diffuse = u_worldLight.diff * v_Kd * nDotL + u_headLight.diff * v_Kd * nDotHl;\n' +
+    '  vec3 speculr = u_worldLight.spec * u_MatlSet.spec * e64 + u_headLight.spec * u_MatlSet.spec * e64_2;\n' +
 
-
-  ' if (headlightOn == 1 && worldlightOn == 1){\n'+
-  '  frag = fragHead + fragworld;\n' +
-  '}\n'+
- 
-  ' else if (headlightOn == 1 && worldlightOn == 0){\n'+
-  ' frag = fragHead;}\n'+
-  ' else{ frag = fragworld;}\n'+
-  '  gl_FragColor = frag;\n' +  
+    '  gl_FragColor = vec4(emissive + ambient + diffuse + speculr , 1.0);\n' +
   
-  ' if(shadeMode == 2){\n' +
-  '  gl_FragColor = v_Color;\n' +
-  '}\n'+
+  '}\n' +
   '}\n';
 
 // Global Variables----------------------------------
@@ -283,15 +228,15 @@ var u_modelMatrix;     // **GPU location** of the 'u_modelMatrix' uniform
 var u_NormalMatrix ;
 var modelMatrix = new Matrix4();
 var normalMatrix = new Matrix4(); 
-
+var MOVE_STEP = 0.15;
 var ANGLE_STEP = 45.0;		// Rotation angle rate (degrees/second)
 var ANGLE_STEP_2 = 20.0;   // A different Rotation angle rate (degrees/second)
 var floatsPerVertex = 7;	// # of Float32Array elements used for each vertex
-var g_theta =-27.5;
+var g_theta = 0;
 var userHeight=0;
 var currentHeight=0;
 var eyePosWorld = new Float32Array(3);
-
+var flag = -1;
 
 var g_LambAtX = 5.0,
     g_LambAtY = 5.0,
@@ -343,9 +288,9 @@ var quatMatrix = new Matrix4();				// rotation matrix, made from latest qTot
 
 
 var g_EyeX = -25.20, g_EyeY = 10.25, g_EyeZ = 6.0;
-var g_lookX =0;
-var g_lookY =0;
-var g_lookZ = 5.9;
+var g_AtX =0;
+var g_AtY =0;
+var g_AtZ = 5.9;
 var foward_dis = 0;
 var worldLight_1 = new LightsT();
 var headLight = new LightsT();
@@ -1500,16 +1445,13 @@ function drawAll(){
 
 
 
-  var g_atX=g_EyeX+Math.cos(g_theta * Math.PI / 180);
-  var g_atY=g_EyeY+Math.sin(g_theta * Math.PI / 180);
-  g_lookX = g_atX;
-  g_lookY =g_atY;
-  console.log(g_theta);
+
+
 
 
 
   modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_lookX, g_lookY, g_lookZ,      // look-at point
+                     g_AtX, g_AtY, g_AtZ,      // look-at point
                       0.0,  0.0,  1.0);     // 'up' vector
 
        // SAVE world coord system;
@@ -1536,7 +1478,7 @@ function drawAll(){
                         100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
 
     modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_atX, g_atY, g_lookZ,      // look-at point
+                     g_AtX, g_AtY, g_AtZ,      // look-at point
                       0.0,  0.0,  1.0);     // 'up' vector
 
 
@@ -1656,7 +1598,7 @@ function drawAll(){
                         100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
 
     modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_atX, g_atY, g_lookZ,      // look-at point
+                     g_AtX, g_AtY, g_AtZ,      // look-at point
                       0.0,  0.0,  1.0);     // 'up' vector
 					  
 
@@ -1705,7 +1647,7 @@ function drawAll(){
                         100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
 
     modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_atX, g_atY, g_lookZ,      // look-at point
+                     g_AtX, g_AtY, g_AtZ,      // look-at point
                       0.0,  0.0,  1.0);     // 'up' vector
 					  
     modelMatrix.translate(0,0,3);
@@ -2213,9 +2155,9 @@ function keydown(ev) {
 //------------------------------------------------------
 //HTML calls this'Event handler' or 'callback function' when we press a key:
 
-	var dx = g_EyeX - g_lookX;
-	var dy = g_EyeY - g_lookY;
-	var dz = g_EyeZ - g_lookZ;
+	var dx = g_EyeX - g_AtZ;
+	var dy = g_EyeY - g_AtX;
+	var dz = g_EyeZ - g_AtY;
 	
     var abs_l = Math.sqrt(dx*dx + dy*dy + dz*dz);
     var abs_xy = Math.sqrt(dx*dx+dy*dy);
@@ -2225,7 +2167,7 @@ function keydown(ev) {
           headlightOn = false;
       else
           headlightOn = true;
-    }
+    }else
 
     if (ev.keyCode == 32){
       if(worldlightOn){
@@ -2233,57 +2175,77 @@ function keydown(ev) {
       }
       else 
         worldlightOn = true;
-    }
+    }else
 
 	if (ev.keyCode == 77){
 		switchlModes();
-	}
+	}else
 	
 	if (ev.keyCode == 76){
 		switchsModes();
-	}
+	}else
+		
     if (ev.keyCode == 75){
         materialType = (materialType + 1) % 20;
        // console.log("change the material");
-    } 
+    } else
 
 	if(ev.keyCode == 38) { // The up arrow key was pressed
-//      g_EyeX += 0.01;
-				//g_EyeX -= 0.1;
-				g_lookZ+=0.1;
+	
+				g_AtZ = g_AtZ + 0.1;
 
 				// g_EyeZ -= 0.1;				// INCREASED for perspective camera)
     } else
+		
 	if (ev.keyCode == 40) { // The down arrow key was pressed
 //      g_EyeX -= 0.01;
 
-				g_lookZ -= 0.1;		// INCREASED for perspective camera)
+				g_AtZ = g_AtZ - 0.1;		// INCREASED for perspective camera)
     } else
+		
     if(ev.keyCode == 39) { // The right arrow key was pressed
 //      g_EyeX += 0.01;
-				g_theta -= 5;		// INCREASED for perspective camera)
-				console.log(g_theta);
+		if (flag == -1){
+				g_theta = -Math.acos(dx / abs_xy) - 0.1;		// INCREASED for perspective camera)
+				//console.log(g_theta);
+		}
+		else{
+			g_theta = g_theta - 0.1;
+			g_AtX = g_EyeX + abs_xy * Math.cos(g_theta);
+            g_AtY = g_EyeY + abs_xy * Math.sin(g_theta);
+			//console.log(g_theta);
+		}	
+		flag = 1;
     } else
+		
     if (ev.keyCode == 37) { // The left arrow key was pressed
-//      g_EyeX -= 0.01;
-				g_theta += 5;		// INCREASED for perspective camera)
-				console.log(g_theta);
-    }
+	console.log(flag);
+		if (flag == -1){
+				g_theta = -Math.acos(dx / abs_xy) + 0.1;		// INCREASED for perspective camera)
+				//console.log(g_theta);
+		}
+		else{
+			g_theta = g_theta + 0.1;
+			g_AtX = g_EyeX + abs_xy * Math.cos(g_theta);
+            g_AtY = g_EyeY + abs_xy * Math.sin(g_theta);	
+		}
+		flag = 1;
+    }else
 
-    else if(ev.keyCode == 87){ // w go forward
+    if(ev.keyCode == 87){ // w go forward
 
     	g_EyeX -= 0.1*(dx/abs_l);
     	g_EyeZ -= 0.1*(dz/abs_l);
     	g_EyeY-= 0.1*(dy/abs_l);
 
     	
-    	g_lookX -= 0.1*(dx/abs_l);
-    	g_lookZ -= 0.1*(dz/abs_l);
-    	g_lookY-= 0.1*(dy/abs_l);
+    	g_AtX -= 0.1*(dx/abs_l);
+    	g_AtZ -= 0.1*(dz/abs_l);
+    	g_AtY-= 0.1*(dy/abs_l);
 
-    }
+    }else
 
-    else if(ev.keyCode == 83){ // s go forward
+    if(ev.keyCode == 83){ // s go forward
 
 
     	g_EyeX += 0.1*(dx/abs_l);
@@ -2291,28 +2253,44 @@ function keydown(ev) {
     	g_EyeY+= 0.1*(dy/abs_l);
 
     	
-    	g_lookX += 0.1*(dx/abs_l);
-    	g_lookZ += 0.1*(dz/abs_l);
-    	g_lookY+= 0.1*(dy/abs_l);
+    	g_AtX += 0.1*(dx/abs_l);
+    	g_AtZ += 0.1*(dz/abs_l);
+    	g_AtY+= 0.1*(dy/abs_l);
 
     	
 
-    }
+    }else
     
-    else if (ev.keyCode == 68){  //a
+    if (ev.keyCode == 68){  //a
     		g_EyeX -= 0.1 * dy / abs_xy;
             g_EyeY += 0.1 * dx / abs_xy;
-            g_lookX -= 0.1 * dy / abs_xy;
-            g_lookY += 0.1 * dx / abs_xy;
-    }
+            g_AtX -= 0.1 * dy / abs_xy;
+            g_AtY += 0.1 * dx / abs_xy;
+    }else
 
 
-    else if (ev.keyCode == 65){  //d
+    if (ev.keyCode == 65){  //d
     		g_EyeX +=  0.1 * dy / abs_xy;
             g_EyeY -=  0.1 * dx / abs_xy;
-            g_lookX += 0.1 * dy /  abs_xy;
-            g_lookY -= 0.1 * dx /  abs_xy;
-}
+            g_AtX += 0.1 * dy /  abs_xy;
+            g_AtY -= 0.1 * dx /  abs_xy;
+}else
+	if (ev.keyCode == 104) {
+        g_LambAtX += MOVE_STEP;
+        // g_LambAtY -= MOVE_STEP;
+    } else
+    if (ev.keyCode == 98) {
+        g_LambAtX -= MOVE_STEP;
+        // g_LambAtY += MOVE_STEP;
+    } else
+    if (ev.keyCode == 100) {
+        // g_LambAtX += MOVE_STEP * look[0];
+        g_LambAtY += MOVE_STEP;
+    } else
+    if (ev.keyCode == 102) {
+        // g_LambAtX -= MOVE_STEP;
+        g_LambAtY -= MOVE_STEP;
+    } 
 
     else { return; } // Prevent the unnecessary drawing
 
