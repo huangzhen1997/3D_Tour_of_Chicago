@@ -21,6 +21,7 @@ var VSHADER_SOURCE =
 	
   'uniform mat4 u_modelMatrix;\n' +
   'uniform mat4 u_NormalMatrix;\n' +
+  'uniform mat4 u_MvpMatrix;\n' +
   
   'attribute vec4 a_Position;\n' +
   'attribute vec4 a_Normal;\n' +
@@ -52,7 +53,7 @@ var VSHADER_SOURCE =
 
   ' void main() {\n' +
   'if(shadeMode == 1){\n' +
-  '  gl_Position = u_modelMatrix * a_Position;\n' +
+  '  gl_Position = u_MvpMatrix * a_Position;\n' +
      // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
   '  normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
      // Calculate world coordinate of vertex
@@ -62,7 +63,7 @@ var VSHADER_SOURCE =
   '}\n' +
   
   'if(shadeMode == 2){\n' +
-  '  gl_Position = u_modelMatrix * a_Position;\n' +
+  '  gl_Position = u_MvpMatrix * a_Position;\n' +
      // Calculate a normal to be fit with a model matrix, and make it 1.0 in length
   '  normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
      // Calculate world coordinate of vertex
@@ -228,11 +229,16 @@ var u_modelMatrix;     // **GPU location** of the 'u_modelMatrix' uniform
 var u_NormalMatrix ;
 var modelMatrix = new Matrix4();
 var normalMatrix = new Matrix4(); 
+var viewMatrix = new Matrix4();
+var projMatrix = new Matrix4();
+var mvpMatrix = new Matrix4();
+
+
 var MOVE_STEP = 0.15;
 var ANGLE_STEP = 45.0;		// Rotation angle rate (degrees/second)
 var ANGLE_STEP_2 = 20.0;   // A different Rotation angle rate (degrees/second)
 var floatsPerVertex = 7;	// # of Float32Array elements used for each vertex
-var g_theta = 0;
+var g_theta = -25.59;
 var userHeight=0;
 var currentHeight=0;
 var eyePosWorld = new Float32Array(3);
@@ -1334,7 +1340,9 @@ function drawMySceneRepeat(gl,g_ShaderID, lamp, matl){
 	u_ModelMatrix = gl.getUniformLocation(g_ShaderID, 'u_ModelMatrix');
     u_NormalMatrix = gl.getUniformLocation(g_ShaderID, 'u_NormalMatrix');
 	u_eyePosWorld = gl.getUniformLocation(g_ShaderID, 'u_eyePosWorld');
-
+    u_MvpMatrix = gl.getUniformLocation(g_ShaderID, 'u_MvpMatrix');
+	
+	
     gl.uniform3f(u_eyePosWorld, g_EyeX, g_EyeY, g_EyeZ);
   
 	lamp.u_pos = gl.getUniformLocation(g_ShaderID, 'u_worldLight.pos');
@@ -1419,41 +1427,30 @@ function drawMySceneRepeat(gl,g_ShaderID, lamp, matl){
 function drawAll(){
 //==============================================================================
   // Clear <canvas>  colors AND the depth buffer
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.useProgram(g_ShaderID1);
-  var matl_1 = new Material(19);
-  drawMySceneRepeat(gl,g_ShaderID1, worldLight_1, matl_1);
-
-
-  gl.viewport(0,											 				// Viewport lower-left corner
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);  
+	gl.viewport(0,											 				// Viewport lower-left corner
 							0, 			// location(in pixels)
   						gl.drawingBufferWidth, 					// viewport width,
   						gl.drawingBufferHeight);			// viewport height in pixels.
-
-  var vpAspect = gl.drawingBufferWidth /			// On-screen aspect ratio for
+	viewMatrix.setLookAt(g_EyeX, g_EyeY, g_EyeZ, // eye position
+        g_AtX, g_AtY, g_AtZ, // look-at point
+        0, 0, 1); // up vector  
+	var vpAspect = gl.drawingBufferWidth /			// On-screen aspect ratio for
 								(gl.drawingBufferHeight);		// this camera: width/height.
+    projMatrix.setPerspective(30, vpAspect, 1, 100);
+	mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
+	
+	
+	
+	
+	gl.useProgram(g_ShaderID1);
+	var matl_1 = new Material(19);
+	drawMySceneRepeat(gl,g_ShaderID1, worldLight_1, matl_1);
 
 
-
-  modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
-  modelMatrix.perspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
-                           vpAspect,   // Image Aspect Ratio: camera lens width/height
-                           1.0,   // camera z-near distance (always positive; frustum begins at z = -znear)
-                        100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
-
-
-
-
-
-
-
-
-  modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_AtX, g_AtY, g_AtZ,      // look-at point
-                      0.0,  0.0,  1.0);     // 'up' vector
-
+	console.log(g_theta);
        // SAVE world coord system;
-    modelMatrix.translate( 0.4, -0.4, 0.0);
+    modelMatrix.setTranslate( 0.4, -0.4, 0.0);
   	modelMatrix.scale(0.7, 0.7, 0.7);				// shrink by 10X:
 
 	drawGrid();
@@ -1469,22 +1466,12 @@ function drawAll(){
      var matl_3 = new Material(2);
     drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
     //draw tower1
-    modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
-    modelMatrix.perspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
-                           vpAspect,   // Image Aspect Ratio: camera lens width/height
-                           1.0,   // camera z-near distance (always positive; frustum begins at z = -znear)
-                        100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
-
-    modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_AtX, g_AtY, g_AtZ,      // look-at point
-                      0.0,  0.0,  1.0);     // 'up' vector
-
 
 
   //draw tower
   //modelMatrix.translate( 0.4, -0.4, 0.0);
 
-  modelMatrix.translate(-10,-10,4);
+  modelMatrix.setTranslate(-10,-10,4);
   modelMatrix.rotate(90,1,0,0);
   modelMatrix.rotate(180,0,1,0);
   modelMatrix.scale(5,5,5);
@@ -1589,20 +1576,9 @@ function drawAll(){
 
     var matl_2 = new Material(22);
     drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_2);
-    modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
-    modelMatrix.perspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
-                           vpAspect,   // Image Aspect Ratio: camera lens width/height
-                           1.0,   // camera z-near distance (always positive; frustum begins at z = -znear)
-                        100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
-
-    modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_AtX, g_AtY, g_AtZ,      // look-at point
-                      0.0,  0.0,  1.0);     // 'up' vector
-					  
 
 
-
-    modelMatrix.translate(-1,8,1);
+    modelMatrix.setTranslate(-1,8,1);
     pushMatrix(modelMatrix);
     modelMatrix.rotate(90,1,0,0);
     modelMatrix.rotate(-g_angle01,0,1,0);
@@ -1640,17 +1616,9 @@ function drawAll(){
 //===================Draw Eighth OBJECT(Big Sphere):
     var matl_1 = new Material(materialType);
     drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_1);
-	modelMatrix.setIdentity();    // DEFINE 'world-space' coords.
-    modelMatrix.perspective(40.0,   // FOVY: top-to-bottom vertical image angle, in degrees
-                           vpAspect,   // Image Aspect Ratio: camera lens width/height
-                           1.0,   // camera z-near distance (always positive; frustum begins at z = -znear)
-                        100.0);  // camera z-far distance (always positive; frustum ends at z = -zfar)
 
-    modelMatrix.lookAt( g_EyeX, g_EyeY, g_EyeZ,      // center of projection
-                     g_AtX, g_AtY, g_AtZ,      // look-at point
-                      0.0,  0.0,  1.0);     // 'up' vector
 					  
-    modelMatrix.translate(0,0,3);
+    modelMatrix.setTranslate(0,0,3);
     modelMatrix.rotate(-g_angle01,0,0,1);
     
 	modelMatrix.scale(3,3,3);
@@ -1666,7 +1634,8 @@ function drawAll(){
 function drawDiamond(){
 
 
-	
+	mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
+	gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
 
   normalMatrix.setInverseOf(modelMatrix);
@@ -1682,6 +1651,8 @@ function drawDiamond(){
 
 
 function drawCylinder(){
+	mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
+	gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
   // Draw just the the cylinder's vertices:
 
@@ -1696,6 +1667,8 @@ function drawCylinder(){
 }
 
 function drawTentacle(){
+	mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
+	gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
 
   normalMatrix.setInverseOf(modelMatrix);
@@ -1710,6 +1683,8 @@ function drawTentacle(){
 }
 
 function drawCylinder2(){
+	mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
+	gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
 
   normalMatrix.setInverseOf(modelMatrix);
@@ -1724,6 +1699,8 @@ function drawCylinder2(){
 }
 
 function drawGrid(){
+	mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
+	gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 
 	 gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
 
@@ -1740,6 +1717,8 @@ function drawGrid(){
 }
 
 function drawTorus(){
+	mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
+	gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
 
@@ -1755,6 +1734,8 @@ function drawTorus(){
 }
 
 function drawSphere(){
+	mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
+	gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
 
@@ -1770,6 +1751,8 @@ function drawSphere(){
 }
 
 function drawAxes(){
+	mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
+	gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
 
@@ -1784,6 +1767,8 @@ function drawAxes(){
 }
 
 function drawRectangle(){
+	mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
+	gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 	gl.uniformMatrix4fv(u_modelMatrix, false, modelMatrix.elements);
 
   normalMatrix.setInverseOf(modelMatrix);
@@ -2176,32 +2161,16 @@ function keydown(ev) {
     } else
 		
     if(ev.keyCode == 39) { // The right arrow key was pressed
-//      g_EyeX += 0.01;
-		if (flag == -1){
-				g_theta = -Math.acos(dx / abs_xy) - 0.1;		// INCREASED for perspective camera)
-				//console.log(g_theta);
-		}
-		else{
 			g_theta = g_theta - 0.1;
 			g_AtX = g_EyeX + abs_xy * Math.cos(g_theta);
             g_AtY = g_EyeY + abs_xy * Math.sin(g_theta);
 			//console.log(g_theta);
-		}	
-		flag = 1;
     } else
 		
     if (ev.keyCode == 37) { // The left arrow key was pressed
-	console.log(flag);
-		if (flag == -1){
-				g_theta = -Math.acos(dx / abs_xy) + 0.1;		// INCREASED for perspective camera)
-				//console.log(g_theta);
-		}
-		else{
 			g_theta = g_theta + 0.1;
 			g_AtX = g_EyeX + abs_xy * Math.cos(g_theta);
             g_AtY = g_EyeY + abs_xy * Math.sin(g_theta);	
-		}
-		flag = 1;
     }else
 
     if(ev.keyCode == 87){ // w go forward
