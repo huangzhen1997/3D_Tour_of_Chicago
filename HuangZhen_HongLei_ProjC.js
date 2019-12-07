@@ -84,7 +84,7 @@ var VSHADER_SOURCE =
   '  float nDotH_2 = 0.0; \n' +
   
   
-  '    if(lightMode == 1){\n' +
+  '  if(lightMode == 1){\n' +
     //Blinn-Phong Lighting
     '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
     '  nDotH = max(dot(H, normal), 0.0); \n' +
@@ -187,9 +187,9 @@ var FSHADER_SOURCE =
   '    if(lightMode == 1){\n' +
     //Blinn-Phong Lighting
     '  vec3 H = normalize(lightDirection + eyeDirection); \n' +
-    '  nDotH = max(dot(H, normal), 0.0); \n' +
+    '  nDotH = max(dot(H, v_Normal), 0.0); \n' +
     '  vec3 H_2 = normalize(hLightDirection + eyeDirection); \n' +
-    '  nDotH_2 = max(dot(H_2, normal), 0.0); \n' + 
+    '  nDotH_2 = max(dot(H_2, v_Normal), 0.0); \n' + 
   '    }\n' +
   
   
