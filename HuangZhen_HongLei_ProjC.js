@@ -374,8 +374,12 @@ function main() {
 function tick(){
   var now = Date.now();
 	var nuCanvas = document.getElementById('webgl');	// get current canvas
-  document.getElementById('current_rpm').innerHTML=
-      'Current RPM = '+ANGLE_STEP;
+
+  var lighting = lMode==1 ? "Blinn-Phong" : "Phong";
+  var shading = sMode == 1 ? "Phong" : "Gouraud"; 
+
+  document.getElementById('current_mode').innerHTML=
+      'Current Shading & Lighting Method: '+shading+' Shading + '+ lighting +' Lighting';
 	nuCanvas.width = innerWidth;
 	nuCanvas.height = innerHeight*3/4;
 	gl = getWebGLContext(nuCanvas);
@@ -423,7 +427,7 @@ function initVertexBuffer(gl) {
 
  	// Make each 3D shape in its own array of vertices:
   makeCylinder();					// create, fill the cylVerts array
-  makeSphere2();
+  makeSphere();
   makeCylinder2();
   makeTorus2();						// create, fill the torVerts array
   makeGroundGrid();				// create, fill the gndVerts array
@@ -1050,88 +1054,88 @@ function makeCylinder2() {
 
 
 
-function makeSphere2() {
+function makeSphere() {
     //==============================================================================
-    // Make a sphere from one OpenGL TRIANGLE_STRIP primitive.   Make ring-like 
-    // equal-lattitude 'slices' of the sphere (bounded by planes of constant z), 
+    // Make a sphere from one OpenGL TRIANGLE_STRIP primitive.   Make ring-like
+    // equal-lattitude 'slices' of the sphere (bounded by planes of constant z),
     // and connect them as a 'stepped spiral' design (see makeCylinder) to build the
     // sphere from one triangle strip.
-    var slices = 41;		// # of slices of the sphere along the z axis. >=3 req'd
+    var slices = 19; // # of slices of the sphere along the z axis. >=3 req'd
     // (choose odd # or prime# to avoid accidental symmetry)
-    var sliceVerts = 41;	// # of vertices around the top edge of the slice
+    var sliceVerts = 27; // # of vertices around the top edge of the slice
     // (same number of vertices on bottom of slice, too)
-    var topColr = new Float32Array([0.5, 0.5, 0.5]);	// North Pole:
-    var equColr = new Float32Array([.3, .3, .3]);	// Equator:    
-    var botColr = new Float32Array([1, 1, 1]);	// South Pole: 
-    var sliceAngle = Math.PI / slices;	// lattitude angle spanned by one slice.
+    // var topColr = new Float32Array([0.7, 0.7, 0.7]); // North Pole: light gray
+    // var equColr = new Float32Array([0.3, 0.7, 0.3]); // Equator:    bright green
+    // var botColr = new Float32Array([0.9, 0.9, 0.9]); // South Pole: brightest gray.
+    var sliceAngle = Math.PI / slices; // lattitude angle spanned by one slice.
 
     // Create a (global) array to hold this sphere's vertices:
     sphVerts = new Float32Array(((slices * 2 * sliceVerts) - 2) * floatsPerVertex);
-    // # of vertices * # of elements needed to store them. 
+    // # of vertices * # of elements needed to store them.
     // each slice requires 2*sliceVerts vertices except 1st and
     // last ones, which require only 2*sliceVerts-1.
 
     // Create dome-shaped top slice of sphere at z=+1
-    // s counts slices; v counts vertices; 
+    // s counts slices; v counts vertices;
     // j counts array elements (vertices * elements per vertex)
-    var cos0 = 0.0;					// sines,cosines of slice's top, bottom edge.
+    var cos0 = 0.0; // sines,cosines of slice's top, bottom edge.
     var sin0 = 0.0;
     var cos1 = 0.0;
     var sin1 = 0.0;
-    var j = 0;							// initialize our array index
+    var j = 0; // initialize our array index
     var isLast = 0;
     var isFirst = 1;
-    for (s = 0; s < slices; s++) {	// for each slice of the sphere,
+    for (s = 0; s < slices; s++) { // for each slice of the sphere,
         // find sines & cosines for top and bottom of this slice
         if (s == 0) {
-            isFirst = 1;	// skip 1st vertex of 1st slice.
-            cos0 = 1.0; 	// initialize: start at north pole.
+            isFirst = 1; // skip 1st vertex of 1st slice.
+            cos0 = 1.0; // initialize: start at north pole.
             sin0 = 0.0;
-        }
-        else {					// otherwise, new top edge == old bottom edge
+        } else { // otherwise, new top edge == old bottom edge
             isFirst = 0;
             cos0 = cos1;
             sin0 = sin1;
-        }								// & compute sine,cosine for new bottom edge.
+        } // & compute sine,cosine for new bottom edge.
         cos1 = Math.cos((s + 1) * sliceAngle);
         sin1 = Math.sin((s + 1) * sliceAngle);
         // go around the entire slice, generating TRIANGLE_STRIP verts
         // (Note we don't initialize j; grows with each new attrib,vertex, and slice)
-        if (s == slices - 1) isLast = 1;	// skip last vertex of last slice.
+        if (s == slices - 1) isLast = 1; // skip last vertex of last slice.
         for (v = isFirst; v < 2 * sliceVerts - isLast; v++, j += floatsPerVertex) {
-            if (v % 2 == 0) {				// put even# vertices at the the slice's top edge
+            if (v % 2 == 0) { // put even# vertices at the the slice's top edge
                 // (why PI and not 2*PI? because 0 <= v < 2*sliceVerts
-                // and thus we can simplify cos(2*PI(v/2*sliceVerts))  
+                // and thus we can simplify cos(2*PI(v/2*sliceVerts))
                 sphVerts[j] = sin0 * Math.cos(Math.PI * (v) / sliceVerts);
                 sphVerts[j + 1] = sin0 * Math.sin(Math.PI * (v) / sliceVerts);
                 sphVerts[j + 2] = cos0;
-				sphVerts[j + 3] = 1.0;
-            }
-            else { 	// put odd# vertices around the slice's lower edge;
+                sphVerts[j + 3] = 1.0;
+                sphVerts[j + 4] = sin0 * Math.cos(Math.PI * (v) / sliceVerts);
+                sphVerts[j + 5] = sin0 * Math.sin(Math.PI * (v) / sliceVerts);
+                sphVerts[j + 6] = cos0;
+            } else { // put odd# vertices around the slice's lower edge;
                 // x,y,z,w == cos(theta),sin(theta), 1.0, 1.0
-                // 					theta = 2*PI*((v-1)/2)/capVerts = PI*(v-1)/capVerts
-                sphVerts[j] = sin1 * Math.cos(Math.PI * (v - 1) / sliceVerts);		// x
-                sphVerts[j + 1] = sin1 * Math.sin(Math.PI * (v - 1) / sliceVerts);		// y
-                sphVerts[j + 2] = cos1;	
-				sphVerts[j + 3] = 1.0;				
+                //          theta = 2*PI*((v-1)/2)/capVerts = PI*(v-1)/capVerts
+                sphVerts[j] = sin1 * Math.cos(Math.PI * (v - 1) / sliceVerts); // x
+                sphVerts[j + 1] = sin1 * Math.sin(Math.PI * (v - 1) / sliceVerts); // y
+                sphVerts[j + 2] = cos1; // z
+                sphVerts[j + 3] = 1.0; // w.
+                sphVerts[j + 4] = sin1 * Math.cos(Math.PI * (v - 1) / sliceVerts); // x
+                sphVerts[j + 5] = sin1 * Math.sin(Math.PI * (v - 1) / sliceVerts); // y
+                sphVerts[j + 6] = cos1; // z
             }
-            if (s == 0) {	// finally, set some interesting colors for vertices:
-
-                sphVerts[j + 4] = sin1 * Math.cos(Math.PI * (v - 1) / sliceVerts);
-                sphVerts[j + 5] = sin1 * Math.sin(Math.PI * (v - 1) / sliceVerts);
-                sphVerts[j + 6] = cos1;
-            }
-            else if (s == slices - 1) {
-                sphVerts[j + 4] = sin1 * Math.cos(Math.PI * (v - 1) / sliceVerts);
-                sphVerts[j + 5] = sin1 * Math.sin(Math.PI * (v - 1) / sliceVerts);
-                sphVerts[j + 6] = cos1;
-            }
-            else {
-                sphVerts[j + 4] = sin1 * Math.cos(Math.PI * (v - 1) / sliceVerts);
-                sphVerts[j + 5] = sin1 * Math.sin(Math.PI * (v - 1) / sliceVerts);
-                sphVerts[j + 6] = cos1;
-            }
-
+            // if (s == 0) { // finally, set some interesting colors for vertices:
+            //     sphVerts[j + 4] = topColr[0];
+            //     sphVerts[j + 5] = topColr[1];
+            //     sphVerts[j + 6] = topColr[2];
+            // } else if (s == slices - 1) {
+            //     sphVerts[j + 4] = botColr[0];
+            //     sphVerts[j + 5] = botColr[1];
+            //     sphVerts[j + 6] = botColr[2];
+            // } else {
+            //     sphVerts[j + 4] = Math.random(); // equColr[0];
+            //     sphVerts[j + 5] = Math.random(); // equColr[1];
+            //     sphVerts[j + 6] = Math.random(); // equColr[2];
+            // }
         }
     }
 }
@@ -1471,8 +1475,9 @@ function drawAll(){
   //draw tower
   //modelMatrix.translate( 0.4, -0.4, 0.0);
 
-  modelMatrix.setTranslate(-10,-10,4);
+  modelMatrix.setTranslate(3,-10,3.9);
   modelMatrix.rotate(90,1,0,0);
+  modelMatrix.rotate(-g_angle01,0,1,0);
   modelMatrix.rotate(180,0,1,0);
   modelMatrix.scale(5,5,5);
   pushMatrix(modelMatrix);
@@ -1482,6 +1487,8 @@ function drawAll(){
   
 
 //2
+  var matl_3 = new Material(3);
+  drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
   modelMatrix=popMatrix();
   pushMatrix(modelMatrix);
   //modelMatrix.rotate(-currentAngle,1,1,0)
@@ -1490,6 +1497,8 @@ function drawAll(){
   drawRectangle();
 
   //1
+  var matl_3 = new Material(4);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
   modelMatrix=popMatrix();
   pushMatrix(modelMatrix);
   //modelMatrix.rotate(-currentAngle,1,1,0)
@@ -1499,6 +1508,8 @@ function drawAll(){
 
 
 //    //pos6
+var matl_3 = new Material(5);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
   modelMatrix=popMatrix();
   pushMatrix(modelMatrix);
   //modelMatrix.rotate(-currentAngle,1,1,0);
@@ -1510,6 +1521,8 @@ function drawAll(){
 
 
 //5
+var matl_3 = new Material(6);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
   modelMatrix=popMatrix();
   modelMatrix.translate(0,0,0);
   pushMatrix(modelMatrix);
@@ -1518,6 +1531,8 @@ function drawAll(){
   drawRectangle();
 
   // //4
+  var matl_3 = new Material(7);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
   modelMatrix=popMatrix();
   pushMatrix(modelMatrix);
   //modelMatrix.rotate(-currentAngle,1,1,0)
@@ -1526,6 +1541,8 @@ function drawAll(){
   drawRectangle();
 
    //pos9
+   var matl_3 = new Material(8);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
   modelMatrix=popMatrix();
   pushMatrix(modelMatrix);
   //modelMatrix.rotate(-currentAngle,1,1,0);
@@ -1535,6 +1552,8 @@ function drawAll(){
   drawRectangle();
 
   //8
+  var matl_3 = new Material(9);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
   modelMatrix=popMatrix();
   pushMatrix(modelMatrix);
   //modelMatrix.rotate(-currentAngle,1,1,0);
@@ -1545,6 +1564,8 @@ function drawAll(){
 
 
   //7
+  var matl_3 = new Material(10);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
   modelMatrix=popMatrix();
   pushMatrix(modelMatrix);
   //modelMatrix.rotate(-currentAngle,1,1,0);
@@ -1554,6 +1575,8 @@ function drawAll(){
   drawRectangle();
 
 
+  var matl_3 = new Material(14);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
   modelMatrix=popMatrix();
   pushMatrix(modelMatrix);
   modelMatrix.translate(0,0.8,0.2);
@@ -1563,6 +1586,8 @@ function drawAll(){
   drawTentacle();
 
 //tentacle 2
+var matl_3 = new Material(12);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
   modelMatrix=popMatrix();
   pushMatrix(modelMatrix);
   modelMatrix.translate(0.01,0.8,-0.0);
@@ -1608,6 +1633,357 @@ function drawAll(){
     modelMatrix.rotate(-g_angle01*3,0,1,0);
     modelMatrix.scale(0.4,0.4,0.4);
 	drawSphere();
+
+
+
+
+
+
+
+
+
+  //===================Draw Sixth OBJECT(Rectangle):
+     var matl_3 = new Material(2);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+    //draw tower1
+
+
+  //draw tower
+  //modelMatrix.translate( 0.4, -0.4, 0.0);
+
+  modelMatrix.setTranslate(16,10,4);
+  modelMatrix.rotate(90,1,0,0);
+  // modelMatrix.rotate(-g_angle01,0,1,0);
+  modelMatrix.rotate(180,0,1,0);
+  modelMatrix.scale(5,5,5);
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0.2,-0.5,-0.2);
+  modelMatrix.scale(0.1, 0.15, 0.1);
+  drawRectangle();
+  
+
+//2
+  var matl_3 = new Material(3);
+  drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0)
+  modelMatrix.translate(0,-0.1,-0.2);
+  modelMatrix.scale(0.1, 0.35, 0.1);
+  drawRectangle();
+
+  //1
+  var matl_3 = new Material(4);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0)
+  modelMatrix.translate(-0.2,-0.4,-0.2);
+  modelMatrix.scale(0.1, 0.2, 0.1);
+  drawRectangle();
+
+
+//    //pos6
+var matl_3 = new Material(5);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0);
+  
+  modelMatrix.translate(0.2,-0.1,0);
+  modelMatrix.scale(0.1, 0.35, 0.1);
+  drawRectangle();
+      // Draw just the first set of vertices: start at vertex 0...
+
+
+//5
+var matl_3 = new Material(6);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  modelMatrix.translate(0,0,0);
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0)
+  modelMatrix.scale(0.1, 0.4, 0.1);
+  drawRectangle();
+
+  // //4
+  var matl_3 = new Material(7);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0)
+  modelMatrix.translate(-0.2,-0.1,0);
+  modelMatrix.scale(0.1, 0.35, 0.1);
+  drawRectangle();
+
+   //pos9
+   var matl_3 = new Material(8);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0);
+  
+  modelMatrix.translate(0.2,-0.4,0.2);
+  modelMatrix.scale(0.1, 0.2, 0.1);
+  drawRectangle();
+
+  //8
+  var matl_3 = new Material(9);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0);
+  
+  modelMatrix.translate(0,0,0.2);
+  modelMatrix.scale(0.1, 0.4, 0.1);
+  drawRectangle();
+
+
+  //7
+  var matl_3 = new Material(10);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0);
+  
+  modelMatrix.translate(-0.2,-0.5,0.2);
+  modelMatrix.scale(0.1, 0.15, 0.1);
+  drawRectangle();
+
+
+  var matl_3 = new Material(14);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0,0.8,0.2);
+  modelMatrix.scale(0.09, 0.45, 0.09);
+  modelMatrix.scale(0.09, 0.45, 0.09);
+  // modelMatrix.scale(0.09, 0.45, 0.09);
+  drawTentacle();
+
+//tentacle 2
+var matl_3 = new Material(12);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0.01,0.8,-0.0);
+  modelMatrix.scale(0.09, 0.45, 0.09);
+  modelMatrix.scale(0.09, 0.45, 0.09);
+  // modelMatrix.scale(0.09, 0.45, 0.09);
+  drawTentacle();
+
+
+  //===================Draw Seventh OBJECT(ring):
+
+    var matl_2 = new Material(22);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_2);
+
+
+    modelMatrix.setTranslate(-1,8,1);
+    pushMatrix(modelMatrix);
+    modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01,0,1,0);
+  drawDiamond();
+
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0,0,1);
+    modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01*2,0,1,0);
+  drawDiamond();
+
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0,0,2);
+    modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01*3,0,1,0);
+  drawDiamond();
+  
+  var matl_2 = new Material(6);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_2);
+
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0,0,2.5);
+    modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01*3,0,1,0);
+    modelMatrix.scale(0.4,0.4,0.4);
+  drawSphere();
+
+
+
+
+
+// third tower
+
+
+  //===================Draw Sixth OBJECT(Rectangle):
+     var matl_3 = new Material(2);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+    //draw tower1
+
+
+  //draw tower
+  //modelMatrix.translate( 0.4, -0.4, 0.0);
+
+  modelMatrix.setTranslate(16,3,4);
+  modelMatrix.rotate(90,1,0,0);
+  // modelMatrix.rotate(-g_angle01,0,1,0);
+  modelMatrix.rotate(180,0,1,0);
+  modelMatrix.scale(5,5,5);
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0.2,-0.5,-0.2);
+  modelMatrix.scale(0.1, 0.15, 0.1);
+  drawRectangle();
+  
+
+//2
+  var matl_3 = new Material(3);
+  drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0)
+  modelMatrix.translate(0,-0.1,-0.2);
+  modelMatrix.scale(0.1, 0.35, 0.1);
+  drawRectangle();
+
+  //1
+  var matl_3 = new Material(4);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0)
+  modelMatrix.translate(-0.2,-0.4,-0.2);
+  modelMatrix.scale(0.1, 0.2, 0.1);
+  drawRectangle();
+
+
+//    //pos6
+var matl_3 = new Material(5);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0);
+  
+  modelMatrix.translate(0.2,-0.1,0);
+  modelMatrix.scale(0.1, 0.35, 0.1);
+  drawRectangle();
+      // Draw just the first set of vertices: start at vertex 0...
+
+
+//5
+var matl_3 = new Material(6);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  modelMatrix.translate(0,0,0);
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0)
+  modelMatrix.scale(0.1, 0.4, 0.1);
+  drawRectangle();
+
+  // //4
+  var matl_3 = new Material(7);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0)
+  modelMatrix.translate(-0.2,-0.1,0);
+  modelMatrix.scale(0.1, 0.35, 0.1);
+  drawRectangle();
+
+   //pos9
+   var matl_3 = new Material(8);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0);
+  
+  modelMatrix.translate(0.2,-0.4,0.2);
+  modelMatrix.scale(0.1, 0.2, 0.1);
+  drawRectangle();
+
+  //8
+  var matl_3 = new Material(9);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0);
+  
+  modelMatrix.translate(0,0,0.2);
+  modelMatrix.scale(0.1, 0.4, 0.1);
+  drawRectangle();
+
+
+  //7
+  var matl_3 = new Material(10);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  //modelMatrix.rotate(-currentAngle,1,1,0);
+  
+  modelMatrix.translate(-0.2,-0.5,0.2);
+  modelMatrix.scale(0.1, 0.15, 0.1);
+  drawRectangle();
+
+
+  var matl_3 = new Material(14);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0,0.8,0.2);
+  modelMatrix.scale(0.09, 0.45, 0.09);
+  modelMatrix.scale(0.09, 0.45, 0.09);
+  // modelMatrix.scale(0.09, 0.45, 0.09);
+  drawTentacle();
+
+//tentacle 2
+var matl_3 = new Material(12);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_3);
+  modelMatrix=popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0.01,0.8,-0.0);
+  modelMatrix.scale(0.09, 0.45, 0.09);
+  modelMatrix.scale(0.09, 0.45, 0.09);
+  // modelMatrix.scale(0.09, 0.45, 0.09);
+  drawTentacle();
+
+
+  //===================Draw Seventh OBJECT(ring):
+
+    var matl_2 = new Material(22);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_2);
+
+
+    modelMatrix.setTranslate(-1,8,1);
+    pushMatrix(modelMatrix);
+    modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01,0,1,0);
+  drawDiamond();
+
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0,0,1);
+    modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01*2,0,1,0);
+  drawDiamond();
+
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0,0,2);
+    modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01*3,0,1,0);
+  drawDiamond();
+  
+  var matl_2 = new Material(6);
+    drawMySceneRepeat(gl, g_ShaderID1,worldLight_1, matl_2);
+
+  modelMatrix = popMatrix();
+  pushMatrix(modelMatrix);
+  modelMatrix.translate(0,0,2.5);
+    modelMatrix.rotate(90,1,0,0);
+    modelMatrix.rotate(-g_angle01*3,0,1,0);
+    modelMatrix.scale(0.4,0.4,0.4);
+  drawSphere();
 
 
 
@@ -2119,7 +2495,7 @@ function keydown(ev) {
     var abs_l = Math.sqrt(dx*dx + dy*dy + dz*dz);
     var abs_xy = Math.sqrt(dx*dx+dy*dy);
 
-    if (ev.keyCode==72){
+    if (ev.keyCode==13){
       if (headlightOn)
           headlightOn = false;
       else
@@ -2134,15 +2510,15 @@ function keydown(ev) {
         worldlightOn = true;
     }else
 
-	if (ev.keyCode == 77){
-		switchlModes();
-	}else
-	
-	if (ev.keyCode == 76){
+	if (ev.keyCode == 78){
 		switchsModes();
 	}else
+	
+	if (ev.keyCode ==77 ){
+		switchlModes();
+	}else
 		
-    if (ev.keyCode == 75){
+    if (ev.keyCode == 66){
         materialType = (materialType + 1) % 20;
        // console.log("change the material");
     } else
@@ -2216,19 +2592,19 @@ function keydown(ev) {
             g_AtX += 0.1 * dy /  abs_xy;
             g_AtY -= 0.1 * dx /  abs_xy;
 }else
-	if (ev.keyCode == 104) {
+	if (ev.keyCode == 73) {
         g_LambAtX += MOVE_STEP;
         // g_LambAtY -= MOVE_STEP;
     } else
-    if (ev.keyCode == 98) {
+    if (ev.keyCode == 75) {
         g_LambAtX -= MOVE_STEP;
         // g_LambAtY += MOVE_STEP;
     } else
-    if (ev.keyCode == 100) {
+    if (ev.keyCode ==74) {
         // g_LambAtX += MOVE_STEP * look[0];
         g_LambAtY += MOVE_STEP;
     } else
-    if (ev.keyCode == 102) {
+    if (ev.keyCode == 76) {
         // g_LambAtX -= MOVE_STEP;
         g_LambAtY -= MOVE_STEP;
     } 

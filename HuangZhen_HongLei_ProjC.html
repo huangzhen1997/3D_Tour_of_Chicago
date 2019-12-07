@@ -13,7 +13,7 @@
 
 
 
-    	<p> Chicago is famous for its city architecture, Last time I made a simple colorful model for Willis Tower, this time I made it possible for you to discover with a 3d camera that you can move around in the space, and there is helicopter for you to take a sky tour around the city !~~<p>
+    	<p> Chicago is famous for its city architecture, Last time we made it possible for you to discover with a 3d camera that you can move around in the space, this time we add two lights source with two lighting (Phong lighting and Blinn-Phong lighting) and two shading(Gouraud Shading and Phong shading) modes for you to explore ! Also, you can change the material of the spinning Sphere in the middle, and observe the differnece of light effects on it! ~~<p>
     	<p>please follow the instructions below, and enjoy  :)</p> 
 
 
@@ -22,22 +22,16 @@
     	<p1>Instructions:</p1>
 
 
-    	<p>use "W,A,S,D" to move around in the space</p>
-    	<p>arrow keys to turn your head around</p>
-    	<p>The RPM can be customized by user input, or click the buttons to increase/decrease</p>
-		<p>If the RPM >= 800, the holicopter will take off, and once RPM <= 800, it will start returning back to ground</p>
-		<p>Click "Reset Helicopter" to reset the position of the helicopter</p></p>
-		<p>Drag the diamond ring with the mouse, and it will spin (click and drag up and down for it to spin around x axis, left and right for y axis) </p>
-        <p>
-        <div id="stretcher">
-            <p>light source: lampAmbiR, lampAmbiG, lampAmbiB, lampDiffR, lampDiffG, lampDiffB, lampSpecR, lampSpecG, lampSpecB</p>
-            <p style="display:inline">lampAmbiR:<input id="lampAmbiR" size="5" value="1.0" /> lampAmbiG:<input id="lampAmbiG" size="5" value="1.0" /> lampAmbiB:<input id="lampAmbiB" size="5" value="1.0" /> lampDiffR:
-                <input id="lampDiffR" size="5" value="1.0" /> lampDiffG:<input id="lampDiffG" size="5" value="1.0" /> lampDiffB:<input id="lampDiffB" size="5" value="1.0" /> lampSpecR:
-                <input id="lampSpecR" size="5" value="1.0" /> lampSpecG:<input id="lampSpecG" size="5" value="1.0" /> lampSpecB:<input id="lampSpecB" size="5" value="1.0" /> </p>
-            &nbsp;
-            <button type="button" id="submit" onclick="onSubmit()">Submit</button>
-        </div>
-        </p>
+    	<p>- use "W,A,S,D" to move around in the space</p>
+    	<p>- arrow keys to turn your head around</p>
+    	<p>- use "I,J,K,L to adjust the world light position"</p>
+		<p>- press "Space Bar" to turn on/off the world light</p></p>
+		<p>- press "Enter" to turn on/ff the head light </p>
+		<p>- press "B" to change the material of the spinning sphere</p>
+		<p>- press "N" to switch between Blinn-Phong lighting and Phong lighting</p>
+		<p>- press "M" to switch between Gouraud Shading and Phong Shading</p>
+		<p>- use the inputs below to customize the lighting attibutes of world lights </p>
+        
 
 
 
@@ -46,22 +40,31 @@
     </canvas>
 
 
-	<p>
+
 	<!-- Make a 'div' element to hold changeable HTML made in our JavaScript file;
 		 (where? look inside main(), inside its 'tick()' function, where we
 		 display the 'current angle' value.
 	-->
+	<p>
+        <div id="stretcher">
+            <p>light source: lampAmbiR, lampAmbiG, lampAmbiB, lampDiffR, lampDiffG, lampDiffB, lampSpecR, lampSpecG, lampSpecB</p>
+            <p style="display:inline">lampAmbiR:<input id="lampAmbiR" size="5" value="1.0" /> lampAmbiG:<input id="lampAmbiG" size="5" value="1.0" /> lampAmbiB:<input id="lampAmbiB" size="5" value="1.0" /> lampDiffR:
+                <input id="lampDiffR" size="5" value="1.0" /> lampDiffG:<input id="lampDiffG" size="5" value="1.0" /> lampDiffB:<input id="lampDiffB" size="5" value="1.0" /> lampSpecR:
+                <input id="lampSpecR" size="5" value="1.0" /> lampSpecG:<input id="lampSpecG" size="5" value="1.0" /> lampSpecB:<input id="lampSpecB" size="5" value="1.0" /> </p>
+            &nbsp;
+            
+        </div>
+        </p>
 
-<div id= current_rpm></div>
+<div id= current_mode></div>
 	<!-- Next, make a simple block of text 
 	-->
-	Please provide the RPM	<!-- Next, make an HTML 'input' box element, a text-box 10 chars wide where users
+		<!-- Next, make an HTML 'input' box element, a text-box 10 chars wide where users
 		can type in text.  Give it an ID name so that our JavaScript program
 		(e.g. ControlMulti.js, loaded near the end of this file) can access this
 		HTML element by name in the 'tick' function.
-	--><input id='usrHeight' size=10> 
-		<div id ='current_rpm'></div>
-		<button type="button" onClick='heightSubmit()'>Submit</button><BR> 
+	-->
+		
 		<div id= EditBoxOut></div>
 	</p>
 	
