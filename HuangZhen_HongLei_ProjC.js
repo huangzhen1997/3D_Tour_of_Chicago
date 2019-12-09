@@ -1432,6 +1432,8 @@ function drawAll(){
 //==============================================================================
   // Clear <canvas>  colors AND the depth buffer
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);  
+    g_AtX = g_EyeX +  Math.cos(g_theta * Math.PI/180);
+    g_AtY = g_EyeY +  Math.sin(g_theta * Math.PI/180);
 	gl.viewport(0,											 				// Viewport lower-left corner
 							0, 			// location(in pixels)
   						gl.drawingBufferWidth, 					// viewport width,
@@ -1447,12 +1449,15 @@ function drawAll(){
 	
 	
 	
-	gl.useProgram(g_ShaderID1);
+	//gl.useProgram(g_ShaderID1);
 	var matl_1 = new Material(19);
 	drawMySceneRepeat(gl,g_ShaderID1, worldLight_1, matl_1);
 
 
-	console.log(g_theta);
+	//console.log(g_theta);
+	console.log(g_AtX);
+	console.log(g_AtY);
+	console.log(g_AtZ);
        // SAVE world coord system;
     modelMatrix.setTranslate( 0.4, -0.4, 0.0);
   	modelMatrix.scale(0.7, 0.7, 0.7);				// shrink by 10X:
@@ -2484,16 +2489,16 @@ function onSubmit() {
 
 }
 
-function keydown(ev) {
+function keydown(ev, gl, u_ViewMatrix, viewMatrix) {
 //------------------------------------------------------
 //HTML calls this'Event handler' or 'callback function' when we press a key:
 
-	var dx = g_EyeX - g_AtZ;
-	var dy = g_EyeY - g_AtX;
-	var dz = g_EyeZ - g_AtY;
+	var dx = g_EyeX - g_AtX;
+	var dy = g_EyeY - g_AtY;
+	var dz = g_EyeZ - g_AtZ;
 	
     var abs_l = Math.sqrt(dx*dx + dy*dy + dz*dz);
-    var abs_xy = Math.sqrt(dx*dx+dy*dy);
+    var abs_xy = Math.sqrt(dx*dx + dy*dy);
 
     if (ev.keyCode==13){
       if (headlightOn)
@@ -2514,7 +2519,7 @@ function keydown(ev) {
 		switchsModes();
 	}else
 	
-	if (ev.keyCode ==77 ){
+	if (ev.keyCode == 77 ){
 		switchlModes();
 	}else
 		
@@ -2537,43 +2542,34 @@ function keydown(ev) {
     } else
 		
     if(ev.keyCode == 39) { // The right arrow key was pressed
-			g_theta = g_theta - 0.1;
-			g_AtX = g_EyeX + abs_xy * Math.cos(g_theta);
-            g_AtY = g_EyeY + abs_xy * Math.sin(g_theta);
+	g_theta = g_theta - 5;
 			//console.log(g_theta);
     } else
 		
     if (ev.keyCode == 37) { // The left arrow key was pressed
-			g_theta = g_theta + 0.1;
-			g_AtX = g_EyeX + abs_xy * Math.cos(g_theta);
-            g_AtY = g_EyeY + abs_xy * Math.sin(g_theta);	
+	g_theta = g_theta + 5;
     }else
 
     if(ev.keyCode == 87){ // w go forward
-
     	g_EyeX -= 0.1*(dx/abs_l);
     	g_EyeZ -= 0.1*(dz/abs_l);
     	g_EyeY-= 0.1*(dy/abs_l);
-
-    	
+		
     	g_AtX -= 0.1*(dx/abs_l);
     	g_AtZ -= 0.1*(dz/abs_l);
-    	g_AtY-= 0.1*(dy/abs_l);
-
+    	g_AtY -= 0.1*(dy/abs_l);
     }else
 
-    if(ev.keyCode == 83){ // s go forward
-
+    if(ev.keyCode == 83){ // s go backward
 
     	g_EyeX += 0.1*(dx/abs_l);
     	g_EyeZ += 0.1*(dz/abs_l);
-    	g_EyeY+= 0.1*(dy/abs_l);
+    	g_EyeY += 0.1*(dy/abs_l);
 
-    	
+ 
     	g_AtX += 0.1*(dx/abs_l);
     	g_AtZ += 0.1*(dz/abs_l);
-    	g_AtY+= 0.1*(dy/abs_l);
-
+    	g_AtY += 0.1*(dy/abs_l);
     	
 
     }else
@@ -2581,6 +2577,7 @@ function keydown(ev) {
     if (ev.keyCode == 68){  //a
     		g_EyeX -= 0.1 * dy / abs_xy;
             g_EyeY += 0.1 * dx / abs_xy;
+			
             g_AtX -= 0.1 * dy / abs_xy;
             g_AtY += 0.1 * dx / abs_xy;
     }else
@@ -2589,6 +2586,7 @@ function keydown(ev) {
     if (ev.keyCode == 65){  //d
     		g_EyeX +=  0.1 * dy / abs_xy;
             g_EyeY -=  0.1 * dx / abs_xy;
+			
             g_AtX += 0.1 * dy /  abs_xy;
             g_AtY -= 0.1 * dx /  abs_xy;
 }else
@@ -2610,8 +2608,6 @@ function keydown(ev) {
     } 
 
     else { return; } // Prevent the unnecessary drawing
-
-
     drawAll();
 }
 
