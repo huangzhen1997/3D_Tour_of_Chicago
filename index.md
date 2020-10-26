@@ -1,12 +1,11 @@
-## Welcome to GitHub Pages
+## Intro
 
-You can use the [editor on GitHub](https://github.com/huangzhen1997/3D_Tour_of_Chicago/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+3-D City Of Chicago with lighting 
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
 
 ### Markdown
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+This is the class project that I built for Intro to Computer Graphics class. 
 
 ```markdown
 Syntax highlighted code block
@@ -34,4 +33,3 @@ Your Pages site will use the layout and styles from the Jekyll theme you have se
 
 ### Support or Contact
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
